@@ -1,0 +1,226 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>About - MediLens</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Pacifico&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(to bottom, #2c2c2c, #eae6ef);
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .logo-text {
+      font-family: 'Pacifico', cursive;
+      background: linear-gradient(90deg, #4f46e5, #959295);
+      -webkit-background-clip: text;
+      color: transparent;
+    }
+    .header-gradient {
+      background: linear-gradient(135deg, #7192b4, #171718 50%, #b7d9ef);
+    }
+    .glass-effect {
+      background: rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      box-shadow: 0 8px 32px rgba(31, 38, 135, 0.1);
+    }
+    .btn-primary {
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      background: linear-gradient(90deg, #4f46e5, #7c3aed);
+      border: none;
+      cursor: pointer;
+      border-radius: 9999px;
+      color: #fff;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      padding: 0.75rem 1.5rem;
+    }
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.3);
+    }
+    .main-section {
+      background: url('https://cdn.pixabay.com/photo/2020/06/06/21/19/drugs-5268287_1280.jpg') center/cover no-repeat;
+      position: relative;
+      z-index: 0;
+      flex-grow: 1;
+      display: flex;
+      align-items: center;
+    }
+    .main-section::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: rgba(255, 255, 255, 0.1);
+      z-index: 1;
+    }
+    .main-section > * {
+      position: relative;
+      z-index: 2;
+    }
+    .card-hover {
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .card-hover:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header class="header-gradient text-white py-4 shadow-lg">
+    <div class="container mx-auto px-4 sm:px-6 flex justify-between items-center">
+      <div class="flex items-center">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 sm:h-10 sm:w-10 mr-2 sm:mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+        </svg>
+        <h1 class="text-2xl sm:text-3xl font-bold logo-text animate__animated animate__fadeIn">MediLens</h1>
+      </div>
+      <nav class="hidden md:flex space-x-6">
+        <a href="index.html" class="text-white hover:text-indigo-200 transition text-sm">Home</a>
+        <a href="about.html" class="text-white hover:text-indigo-200 transition text-sm underline">About</a>
+      </nav>
+      <button id="mobileMenuBtn" class="md:hidden text-white">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+      </button>
+    </div>
+    <div id="mobileMenu" class="mobile-menu hidden md:hidden bg-indigo-700 text-white">
+      <ul class="flex flex-col items-center py-4 space-y-4">
+        <li><a href="index.html" class="text-white hover:text-indigo-200 transition text-base">Home</a></li>
+        <li><a href="about.html" class="text-white hover:text-indigo-200 transition text-base underline">About</a></li>
+      </ul>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="main-section py-12 sm:py-16 px-4">
+    <div class="container mx-auto max-w-4xl">
+      <div class="card-hover bg-white rounded-2xl shadow-xl p-6 sm:p-8 glass-effect animate__animated animate__fadeInUp">
+        <h2 class="text-3xl sm:text-4xl font-bold text-gray-800 mb-6 sm:mb-8">About <span class="logo-text">MediLens</span></h2>
+        <p class="text-gray-700 text-lg sm:text-xl mb-4 sm:mb-6 leading-relaxed">
+          MediLens is a digital solution designed to help users find affordable generic medicines and nearby Jan Aushadhi Kendras.
+        </p>
+        <p class="text-gray-700 text-lg sm:text-xl mb-4 sm:mb-6 leading-relaxed">
+          With features like voice-based search, image scanning via OCR, and instant PDF downloads, MediLens bridges the gap between accessibility and affordability in healthcare.
+        </p>
+        <p class="text-gray-700 text-lg sm:text-xl mb-6 sm:mb-8 leading-relaxed">
+          Whether you're searching for a branded medicine substitute or locating the nearest Kendra, MediLens brings it all to your fingertips.
+        </p>
+        <a href="index.html" class="btn-primary text-sm sm:text-base">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 sm:h-5 sm:w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+          </svg>
+          Go Back to Home
+        </a>
+      </div>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-gray-800 text-white py-8 sm:py-12">
+    <div class="container mx-auto px-4 sm:px-6">
+      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8">
+        <div>
+          <h3 class="text-lg sm:text-xl font-bold mb-3 sm:mb-4 logo-text">MediLens</h3>
+          <p class="text-gray-400 text-sm sm:text-base">Making healthcare accessible through Jan Aushadhi Kendra locator.</p>
+        </div>
+        <div>
+          <h4 class="text-base sm:text-lg font-semibold mb-3 sm:mb-4">Quick Links</h4>
+          <ul class="space-y-2">
+            <li><a href="index.html" class="text-gray-400 hover:text-white transition text-sm sm:text-base">Home</a></li>
+            <li><a href="about.html" class="text-gray-400 hover:text-white transition text-sm sm:text-base">About</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4 class="text-base sm:text-lg font-semibold mb-3 sm:mb-4">Resources</h4>
+          <ul class="space-y-2">
+            <li><a href="#" class="text-gray-400 hover:text-white transition text-sm sm:text-base">Jan Aushadhi Scheme</a></li>
+            <li><a href="#" class="text-gray-400 hover:text-white transition text-sm sm:text-base">FAQ</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4 class="text-base sm:text-lg font-semibold mb-3 sm:mb-4">Contact Us</h4>
+          <ul class="space-y-2">
+            <li class="flex items-center text-gray-400 text-sm sm:text-base">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 sm:h-5 sm:w-5 mr-1 sm:mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+              </svg>
+              +91 8423355398
+            </li>
+            <li class="flex items-center text-gray-400 text-sm sm:text-base">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 sm:h-5 sm:w-5 mr-1 sm:mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+              <a href="mailto:support@medilens.com">support@medilens.com</a>
+            </li>
+          </ul>
+        </div>
+      </div>
+      <div class="border-t border-gray-700 mt-6 sm:mt-8 pt-6 sm:pt-8 text-center text-gray-400">
+        <p class="text-sm sm:text-base">Powered by Logicloards</p>
+        <p class="text-sm sm:text-base mt-2">© 2025 MediLens. All rights reserved.</p>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Mobile Menu Toggle
+    const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+    const mobileMenu = document.getElementById('mobileMenu');
+    mobileMenuBtn.addEventListener('click', () => {
+      mobileMenu.classList.toggle('hidden');
+    });
+  </script>
+</body>
+</html>

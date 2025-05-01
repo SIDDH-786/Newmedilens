@@ -1,0 +1,1515 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MediLens - Affordable Medicine & Kendra Finder</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.0.2/dist/tesseract.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Pacifico&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(to bottom, #2c2c2c, #eae6ef);
+            margin: 0;
+            padding: 0;
+        }
+
+        .logo-text {
+            font-family: 'Pacifico', cursive;
+            background: linear-gradient(90deg, #4f46e5, #959295);
+            -webkit-background-clip: text;
+            color: transparent;
+        }
+
+        .hero-gradient {
+            background: linear-gradient(135deg, #7192b4, #171718 50%, #b7d9ef);
+        }
+
+        .card-hover {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card-hover:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.1);
+        }
+
+        /* Buttons */
+        .btn-primary,
+        .btn-secondary {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            border: none;
+            cursor: pointer;
+            border-radius: 9999px;
+            color: #fff;
+            font-weight: 600;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: linear-gradient(90deg, #4f46e5, #7c3aed);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.3);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(90deg, #10b981, #34d399);
+        }
+
+        .btn-secondary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.3);
+        }
+
+        /* Animations */
+        .voice-btn {
+            animation: voicePulse 1.5s infinite;
+        }
+
+        @keyframes voicePulse {
+            0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+
+        .listening {
+            animation: listeningPulse 1s infinite alternate;
+        }
+
+        @keyframes listeningPulse {
+            from { transform: scale(1); }
+            to { transform: scale(1.1); }
+        }
+
+        /* Hero & Section Backgrounds */
+        .hero-section {
+            background: url('https://cdn.pixabay.com/photo/2020/06/06/21/19/drugs-5268287_1280.jpg') center/cover no-repeat;
+            position: relative;
+            z-index: 0;
+        }
+
+        .why-choose-section {
+            background: url('https://imgs.search.brave.com/6j00gkcuozDPLqkUQHlESUkPhgIXefIjXkKwU2DzHWk/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9tZWRp/YS5nZXR0eWltYWdl/cy5jb20vaWQvMTEz/NDM1MzQ0OC9waG90/by9waGFybWFjeS5q/cGc_cz02MTJ4NjEy/Jnc9MCZrPTIwJmM9/NjRVVE42RllYRTln/b0xodl94bUlaTWxM/eENQeXU2MUdid3hr/VTlmOTRoWT0') center/cover no-repeat;
+            position: relative;
+            z-index: 0;
+        }
+
+        .hero-section::before,
+        .why-choose-section::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: rgba(255, 255, 255, 0.1);
+            z-index: 1;
+        }
+
+        .hero-section > *,
+        .why-choose-section > * {
+            position: relative;
+            z-index: 2;
+        }
+
+        .search-card {
+            border: 2px solid transparent;
+            background-clip: padding-box;
+            position: relative;
+            overflow: hidden;
+            z-index: 2;
+        }
+
+        .search-card::before {
+            content: '';
+            position: absolute;
+            inset: -2px;
+            background: linear-gradient(135deg, #060606, #efebf0);
+            z-index: -1;
+        }
+
+        /* Inputs & Autocomplete */
+        .search-input {
+            font-weight: 600;
+            padding: 1rem 2.5rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 9999px;
+            width: 100%;
+        }
+
+        .search-input:focus {
+            border-color: #504f60;
+            outline: none;
+            box-shadow: 0 0 0 4px #a39ff3;
+        }
+
+        .autocomplete-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(79, 70, 229, 0.3);
+            border-radius: 0.5rem;
+            box-shadow: 0 8px 16px rgba(79, 70, 229, 0.2);
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 10;
+            margin-top: 0.5rem;
+            display: none;
+        }
+
+        .autocomplete-item {
+            padding: 0.75rem 1rem;
+            cursor: pointer;
+            color: #1f2937;
+            transition: background-color 0.2s ease;
+        }
+
+        .autocomplete-item:hover,
+        .autocomplete-item.active {
+            background-color: rgba(79, 70, 229, 0.3);
+            font-weight: 500;
+        }
+
+        /* Text Selection for Scan */
+        .text-item {
+            padding: 0.5rem;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.25rem;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .text-item:hover,
+        .text-item.selected {
+            background-color: rgba(79, 70, 229, 0.1);
+            border-color: #4f46e5;
+        }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 1rem;
+            text-align: left;
+            font-size: 0.875rem;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        @media (max-width: 640px) {
+            th, td {
+                font-size: 0.75rem;
+                padding: 0.5rem;
+            }
+        }
+
+        /* Section Highlights */
+        .why-choose-section h2 {
+            color: #1e40af;
+        }
+
+        .why-choose-section h3 {
+            color: #b91c1c;
+        }
+
+        .why-choose-section p {
+            color: #4b5563;
+        }
+
+        .bg-indigo-100 .text-indigo-600 {
+            background-color: rgba(79, 70, 229, 0.1);
+            color: #4f46e5;
+        }
+
+        .bg-green-100 .text-green-600 {
+            background-color: rgba(16, 185, 129, 0.1);
+            color: #10b981;
+        }
+
+        .bg-purple-100 .text-purple-600 {
+            background-color: rgba(124, 58, 237, 0.1);
+            color: #7c3aed;
+        }
+
+        /* Gradient Bars */
+        .bg-gradient-to-r.from-indigo-500.to-purple-500 {
+            background: linear-gradient(90deg, #4f46e5, #7c3aed);
+        }
+
+        .bg-gradient-to-r.from-green-500.to-teal-500 {
+            background: linear-gradient(90deg, #10b981, #34d399);
+        }
+
+        .bg-gradient-to-r.from-purple-500.to-pink-500 {
+            background: linear-gradient(90deg, #7c3aed, #c026d3);
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <!-- Header -->
+    <header class="hero-gradient text-white py-4 shadow-lg">
+        <div class="container mx-auto px-4 sm:px-6 flex justify-between items-center">
+            <div class="flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 sm:h-10 sm:w-10 mr-2 sm:mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+                </svg>
+                <h1 class="text-2xl sm:text-3xl font-bold logo-text animate__animated animate__fadeIn">MediLens</h1>
+            </div>
+            <nav class="hidden md:flex space-x-6">
+                <a href="#" class="text-white hover:text-indigo-200 transition text-sm">Home</a>
+                <a href="about.html" class="text-white hover:text-indigo-200 transition text-sm">About</a>
+                <a href="#" class="text-white hover:text-indigo-200 transition text-sm">How It Works</a>
+                <a href="#" class="text-white hover:text-indigo-200 transition text-sm">Contact</a>
+            </nav>
+            <button id="mobileMenuBtn" class="md:hidden text-white">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+            </button>
+        </div>
+        <div id="mobileMenu" class="mobile-menu hidden md:hidden bg-indigo-700 text-white">
+            <ul class="flex flex-col items-center py-4 space-y-4">
+                <li><a href="#" class="text-white hover:text-indigo-200 transition text-base">Home</a></li>
+                <li><a href="about.html" class="text-white hover:text-indigo-200 transition text-base">About</a></li>
+                <li><a href="#" class="text-white hover:text-indigo-200 transition text-base">How It Works</a></li>
+                <li><a href="#" class="text-white hover:text-indigo-200 transition text-base">Contact</a></li>
+            </ul>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="py-8 sm:py-16 px-4 hero-section">
+        <div class="container mx-auto text-center">
+            <h2 class="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 sm:mb-6 text-blue-800 animate__animated animate__fadeInUp">
+                Find Affordable Medicines & Kendras
+            </h2>
+            <p class="text-lg sm:text-xl text-taul-900 max-w-2xl mx-auto mb-6 sm:mb-10 animate__animated animate__fadeInUp animate__delay-1s">
+                Save up to 80% on medical expenses with generic medicines and locate nearby Jan Aushadhi Kendras
+            </p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 max-w-5xl mx-auto">
+                <!-- Medicine Search Section -->
+                <div class="bg-white rounded-xl shadow-lg p-4 sm:p-6 glass-effect animate__animated animate__fadeInUp animate__delay-2s search-card">
+                    <h3 class="text-2xl sm:text-3xl font-bold mb-3 sm:mb-4 text-gray-800">💊 Search Medicines</h3>
+                    <div class="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-3 sm:mb-4 relative">
+                        <div class="relative flex-grow">
+                            <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                            <input
+                                type="text"
+                                id="searchInput"
+                                placeholder="Search medicines or conditions (e.g., cold fever)"
+                                class="w-full search-input rounded-full border border-gray-200 focus:outline-none focus:ring-4 focus:ring-indigo-400 text-gray-700 placeholder-gray-400 placeholder:font-semibold shadow-sm text-sm sm:text-base"
+                                autocomplete="off"
+                            />
+                            <button
+                                id="micBtn"
+                                class="absolute right-2 sm:right-3 top-1/2 transform -translate-y-1/2 bg-green-500 text-white p-2 rounded-full flex items-center justify-center voice-btn"
+                            >
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    class="h-4 w-4 sm:h-5 sm:w-5"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                >
+                                    <path
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        stroke-width="2"
+                                        d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"
+                                    />
+                                </svg>
+                            </button>
+                            <div id="autocompleteDropdown" class="autocomplete-dropdown hidden"></div>
+                        </div>
+                        <button
+                            id="searchBtn"
+                            class="btn-primary text-white px-4 sm:px-6 py-2 sm:py-3 rounded-full font-medium text-sm sm:text-base whitespace-nowrap search-button"
+                        >
+                            Search Medicine 💉
+                        </button>
+                    </div>
+                    <div class="mt-4 sm:mt-6">
+                        <button
+                            id="scanButton"
+                            class="flex items-center justify-center mx-auto bg-white text-indigo-600 px-4 sm:px-6 py-2 sm:py-3 rounded-full font-medium border-2 border-indigo-100 hover:border-indigo-300 transition shadow-sm text-sm sm:text-base"
+                        >
+                            <svg
+                                class="w-4 h-4 sm:w-5 sm:h-5 mr-1 sm:mr-2"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                            >
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    stroke-width="2"
+                                    d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
+                                />
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    stroke-width="2"
+                                    d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"
+                                />
+                            </svg>
+                            Scan Prescription or Label
+                        </button>
+                        <input
+                            type="file"
+                            id="cameraInput"
+                            accept="image/*"
+                            capture="environment"
+                            style="display: none;"
+                        />
+                    </div>
+                </div>
+                <!-- Kendra Search Section -->
+                <div class="bg-white rounded-xl shadow-lg p-4 sm:p-6 glass-effect animate__animated animate__fadeInUp animate__delay-2s search-card">
+                    <h3 class="text-2xl sm:text-3xl font-bold mb-3 sm:mb-4 text-gray-800">📍 Search Kendras</h3>
+                    <div class="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-3 sm:mb-4">
+                        <div class="relative flex-grow">
+                            <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                            <input
+                                type="text"
+                                id="pinCodeInput"
+                                placeholder="Enter your pin code (e.g., 208011)"
+                                class="w-full search-input pl-10 rounded-full border border-gray-200 focus:outline-none focus:ring-4 focus:ring-indigo-400 text-gray-700 placeholder-gray-400 placeholder:font-semibold shadow-sm text-sm sm:text-base"
+                            />
+                        </div>
+                        <button
+                            id="findKendraButton"
+                            class="btn-secondary text-white px-4 sm:px-6 py-2 sm:py-3 rounded-full font-medium text-sm sm:text-base whitespace-nowrap search-button"
+                        >
+                            Find Kendras 📍
+                        </button>
+                    </div>
+                    <div class="mt-4 sm:mt-6">
+                        <p class="text-orange-900 text-xs sm:text-sm text-center">
+                            Enter a 6-digit pin code to locate nearby Jan Aushadhi Kendras in Kanpur.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="max-w-5xl mx-auto mt-4 sm:mt-6">
+                <p id="status" class="text-gray-600 text-xs sm:text-sm text-center"></p>
+                <p class="mt-4 text-teal-100 text-xs sm:text-sm font-medium text-center">
+                    Disclaimer: The data provided is based on online sources and may not reflect real-time availability or pricing. Please verify with local pharmacies.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Results Sections -->
+    <div class="container mx-auto px-4 sm:px-6 py-8 sm:py-12">
+        <div id="kendraResults" class="hidden mb-8 sm:mb-12">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 sm:mb-6">
+                <h2 class="text-2xl sm:text-3xl font-bold text-gray-800 mb-4 sm:mb-0">Nearby Jan Aushadhi Kendras</h2>
+                <button id="downloadKendraPdfBtn" class="btn-primary text-white px-4 sm:px-6 py-2 sm:py-3 rounded-full font-medium flex items-center text-sm sm:text-base">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 sm:h-5 sm:w-5 mr-1 sm:mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+                    </svg>
+                    Download Kendra PDF
+                </button>
+            </div>
+            <div class="bg-white rounded-xl shadow-lg overflow-x-auto">
+                <table class="w-full text-gray-800">
+                    <thead class="bg-gradient-to-r from-green-600 to-teal-600 text-white">
+                        <tr>
+                            <th class="p-3 sm:p-4 text-left rounded-tl-xl">Name</th>
+                            <th class="p-3 sm:p-4 text-left">Contact</th>
+                            <th class="p-3 sm:p-4 text-left">Pin Code</th>
+                            <th class="p-3 sm:p-4 text-left">Address</th>
+                            <th class="p-3 sm:p-4 text-left">Kendra Code</th>
+                            <th class="p-3 sm:p-4 text-left rounded-tr-xl">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="kendraTable" class="divide-y divide-gray-200"></tbody>
+                </table>
+            </div>
+        </div>
+        <div id="results" class="hidden mb-8 sm:mb-12">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 sm:mb-6">
+                <h2 class="text-2xl sm:text-3xl font-bold text-gray-800 mb-4 sm:mb-0">Medicine Substitutes</h2>
+                <div class="flex flex-col sm:flex-row gap-3 sm:gap-4">
+                    <select id="resultsKendraSelect" class="p-2 rounded-lg border border-gray-200 text-gray-700 text-sm sm:text-base">
+                        <option value="">Select a Kendra Location</option>
+                    </select>
+                </div>
+            </div>
+            <div class="bg-white rounded-xl shadow-lg overflow-x-auto">
+                <table class="w-full text-gray-800">
+                    <thead class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white">
+                        <tr>
+                            <th class="p-3 sm:p-4 text-left rounded-tl-xl">Medicine Name</th>
+                            <th class="p-3 sm:p-4 text-left">Pack Size</th>
+                            <th class="p-3 sm:p-4 text-left">Generic Price</th>
+                            <th class="p-3 sm:p-4 text-left">Category</th>
+                            <th class="p-3 sm:p-4 text-left">Branded Substitutes</th>
+                            <th class="p-3 sm:p-4 text-left">Branded Price</th>
+                            <th class="p-3 sm:p-4 text-left">Savings</th>
+                            <th class="p-3 sm:p-4 text-left rounded-tr-xl">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="medicineTable" class="divide-y divide-gray-200"></tbody>
+                </table>
+            </div>
+        </div>
+        <div id="cartSection" class="hidden">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 sm:mb-6">
+                <h2 class="text-2xl sm:text-3xl font-bold text-gray-800 mb-4 sm:mb-0">Your Cart</h2>
+                <div class="flex flex-col sm:flex-row gap-3 sm:gap-4">
+                    <select id="cartKendraSelect" class="p-2 rounded-lg border border-gray-200 text-gray-700 text-sm sm:text-base">
+                        <option value="">Select a Kendra</option>
+                    </select>
+                    <button id="checkAvailabilityBtn" class="btn-secondary text-white px-4 sm:px-6 py-2 sm:py-3 rounded-full font-medium text-sm sm:text-base">Check Availability</button>
+                    <button id="downloadCartPdfBtn" class="btn-primary text-white px-4 sm:px-6 py-2 sm:py-3 rounded-full font-medium flex items-center text-sm sm:text-base">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 sm:h-5 sm:w-5 mr-1 sm:mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+                        </svg>
+                        Download Cart PDF
+                    </button>
+                </div>
+            </div>
+            <div class="bg-white rounded-xl shadow-lg p-4 sm:p-6">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-gray-800">
+                        <thead class="bg-gradient-to-r from-indigo-500 to-purple-500 text-white">
+                            <tr>
+                                <th class="p-3 sm:p-4 text-left rounded-tl-xl">Medicine Name</th>
+                                <th class="p-3 sm:p-4 text-left">Generic Price</th>
+                                <th class="p-3 sm:p-4 text-left">Branded Price</th>
+                                <th class="p-3 sm:p-4 text-left">Savings</th>
+                                <th class="p-3 sm:p-4 text-left">Availability</th>
+                                <th class="p-3 sm:p-4 text-left rounded-tr-xl">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="cartTable" class="divide-y divide-gray-200"></tbody>
+                    </table>
+                </div>
+                <div class="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-gray-200">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center">
+                        <div>
+                            <h3 class="text-lg sm:text-xl font-semibold text-gray-800">Total Savings</h3>
+                            <p id="totalSavings" class="text-xl sm:text-2xl font-bold text-green-600">₹0.00</p>
+                        </div>
+                        <button id="clearCartBtn" class="text-red-500 hover:text-red-700 font-medium text-sm sm:text-base mt-4 sm:mt-0">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 sm:h-6 sm:w-6 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                            Clear Cart
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Why Choose MediLens Section -->
+    <section class="why-choose-section py-12 sm:py-16 px-4">
+        <div class="container mx-auto text-center">
+            <h2 class="text-3xl sm:text-4xl md:text-5xl font-bold mb-8 sm:mb-12 text-gray-800 animate__animated animate__fadeInUp">
+                Why Choose <span class="logo-text">MediLens</span>?
+            </h2>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-8 max-w-6xl mx-auto">
+                <!-- Card 1: Accurate Substitutes -->
+                <div class="card-hover bg-white rounded-2xl shadow-xl p-6 sm:p-8 glass-effect relative overflow-hidden transform hover:scale-105 transition-transform duration-300 animate__animated animate__fadeInUp animate__delay-1s">
+                    <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-indigo-500 to-purple-500"></div>
+                    <div class="flex justify-center mb-5">
+                        <div class="w-16 h-16 sm:w-20 sm:h-20 bg-indigo-100 rounded-full flex items-center justify-center transform hover:rotate-12 transition-transform duration-300">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 sm:h-10 sm:w-10 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                    </div>
+                    <h3 class="text-xl sm:text-2xl font-semibold mb-3 text-gray-800">Accurate Substitutes</h3>
+                    <p class="text-gray-600 text-sm sm:text-base leading-relaxed">
+                        Discover scientifically equivalent generic medicines that match the effectiveness of branded options.
+                    </p>
+                </div>
+                <!-- Card 2: Huge Savings -->
+                <div class="card-hover bg-white rounded-2xl shadow-xl p-6 sm:p-8 glass-effect relative overflow-hidden transform hover:scale-105 transition-transform duration-300 animate__animated animate__fadeInUp animate__delay-2s">
+                    <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-green-500 to-teal-500"></div>
+                    <div class="flex justify-center mb-5">
+                        <div class="w-16 h-16 sm:w-20 sm:h-20 bg-green-100 rounded-full flex items-center justify-center transform hover:rotate-12 transition-transform duration-300">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 sm:h-10 sm:w-10 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-9c-1.657 0-3 .895-3 2s1.343 2 3 2m-3-4c0-1.11.402-2.08 1-2.599M12 16v1m0 0c-1.11 0-2.08-.402-2.599-1M12 16c1.657 0 3-.895 3-2s-1.343-2-3-2m3 4c0 1.11-.402 2.08-1 2.599" />
+                            </svg>
+                        </div>
+                    </div>
+                    <h3 class="text-xl sm:text-2xl font-semibold mb-3 text-gray-800">Huge Savings</h3>
+                    <p class="text-gray-600 text-sm sm:text-base leading-relaxed">
+                        Slash your medical bills by 50-80% with cost-effective generic alternatives.
+                    </p>
+                </div>
+                <!-- Card 3: Kendra Locator -->
+                <div class="card-hover bg-white rounded-2xl shadow-xl p-6 sm:p-8 glass-effect relative overflow-hidden transform hover:scale-105 transition-transform duration-300 animate__animated animate__fadeInUp animate__delay-3s">
+                    <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-purple-500 to-pink-500"></div>
+                    <div class="flex justify-center mb-5">
+                        <div class="w-16 h-16 sm:w-20 sm:h-20 bg-purple-100 rounded-full flex items-center justify-center transform hover:rotate-12 transition-transform duration-300">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 sm:h-10 sm:w-10 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                        </div>
+                    </div>
+                    <h3 class="text-xl sm:text-2xl font-semibold mb-3 text-gray-800">Kendra Locator</h3>
+                    <p class="text-gray-600 text-sm sm:text-base leading-relaxed">
+                        Easily find nearby Jan Aushadhi Kendras to purchase affordable medicines.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Scan Preview Modal -->
+    <div id="scanModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-xl p-4 sm:p-6 w-full max-w-xs sm:max-w-md mx-4">
+            <div class="flex justify-between items-center mb-3 sm:mb-4">
+                <h3 class="text-lg sm:text-xl font-bold text-gray-800">Scan Prescription or Label</h3>
+                <button id="closeScanModal" class="text-gray-500 hover:text-gray-700">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 sm:h-6 sm:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <img id="scanPreview" class="w-full rounded-lg mb-3 sm:mb-4" alt="Scan Preview">
+            <div id="loadingIndicator" class="text-center py-3 sm:py-4 hidden">
+                <svg class="animate-spin inline-block w-6 h-6 sm:w-8 sm:h-8 text-indigo-600" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <p class="mt-1 sm:mt-2 text-gray-600 text-sm sm:text-base">Scanning prescription or label...</p>
+            </div>
+            <div id="textSelection" class="hidden max-h-40 overflow-y-auto mb-3 sm:mb-4">
+                <p class="text-gray-600 text-sm sm:text-base mb-2">Select a medicine name:</p>
+                <ul id="textItems" class="space-y-2"></ul>
+            </div>
+            <div class="flex justify-end">
+                <button id="retryScanBtn" class="mr-2 px-3 sm:px-4 py-1 sm:py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 text-sm sm:text-base">Retry</button>
+                <button id="useScanBtn" class="px-3 sm:px-4 py-1 sm:py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm sm:text-base">Scan Image</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white py-8 sm:py-12">
+        <div class="container mx-auto px-4 sm:px-6">
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8">
+                <div>
+                    <h3 class="text-lg sm:text-xl font-bold mb-3 sm:mb-4 logo-text">MediLens</h3>
+                    <p class="text-gray-400 text-sm sm:text-base">Making healthcare accessible through Jan Aushadhi Kendra locator.</p>
+                </div>
+                <div>
+                    <h4 class="text-base sm:text-lg font-semibold mb-3 sm:mb-4">Quick Links</h4>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-gray-400 hover:text-white transition text-sm sm:text-base">Home</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white transition text-sm sm:text-base">About Us</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white transition text-sm sm:text-base">Contact</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="text-base sm:text-lg font-semibold mb-3 sm:mb-4">Resources</h4>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-gray-400 hover:text-white transition text-sm sm:text-base">Jan Aushadhi Scheme</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white transition text-sm sm:text-base">FAQ</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="text-base sm:text-lg font-semibold mb-3 sm:mb-4">Contact Us</h4>
+                    <ul class="space-y-2">
+                        <li class="flex items-center text-gray-400 text-sm sm:text-base">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 sm:h-5 sm:w-5 mr-1 sm:mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                            </svg>
+                            +91 8423355398
+                        </li>
+                        <li class="flex items-center text-gray-400 text-sm sm:text-base">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 sm:h-5 sm:w-5 mr-1 sm:mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                            </svg>
+                            <a href="mailto:support@medilens.com">support@medilens.com</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            <div class="border-t border-gray-700 mt-6 sm:mt-8 pt-6 sm:pt-8 text-center text-gray-400">
+                <p class="text-sm sm:text-base">Powered by Logicloards</p>
+                <p class="text-sm sm:text-base mt-2">© 2025 MediLens. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        const { jsPDF } = window.jspdf;
+
+        // Sample Data
+        const kendras = [
+            { srNo: 1, kendraCode: "PMBJK02453", name: "SLUEET KUMAR MISHRA", contact: "8887959431", stateName: "Uttar Pradesh", pinCode: "208011", address: "Jan Aushadni Medical Store 128367 H Brock Kidwai NagarKanpur Nagar (UP) 208011" },
+            { srNo: 2, kendraCode: "PMBJK02454", name: "DEEPAK GAUTAM", contact: "9651805249", stateName: "Uttar Pradesh", pinCode: "208017", address: "Jan Aushadni Medical Store Plot No 60A Thakur RP Complex Panki Road KalyanpurKanpur(UP)208017" },
+            { srNo: 4, kendraCode: "PMBJK02462", name: "ASHISH PAATAP SINGH", contact: "9554004488", stateName: "Uttar Pradesh", pinCode: "208021", address: "Bajrang Vihar Naubasta Bamba Road Jarauli Phase 1 Near Palace Dist Kanpur Nagar 208021" },
+            { srNo: 5, kendraCode: "PMBJK03113", name: "SEEMENDRA PAATAP SINGH", contact: "9628079091", stateName: "Uttar Pradesh", pinCode: "208006", address: "1 Singh Market Panchkhura PO Ghatampur PS Ghatampur Kanpur Nagar Uttar Pradesh" },
+            { srNo: 6, kendraCode: "PMBJK03434", name: "ABHISHIK MISHRA", contact: "9707437990", stateName: "Uttar Pradesh", pinCode: "208002", address: "119A10 Kheora Surya Vihar Tiraha PO Nawabganj PS Nawabganj Kanpur Nagar Pradesh" },
+            { srNo: 7, kendraCode: "PMBJK03973", name: "RISHAR GUPTA", contact: "9696353009", stateName: "Uttar Pradesh", pinCode: "208002", address: "GSWM MEDICAL COLLEGE" },
+            { srNo: 8, kendraCode: "PMBJK03974", name: "HMANSHU BACHEL", contact: "8899973336", stateName: "Uttar Pradesh", pinCode: "208019", address: "JK CANCER INSTITUTE" },
+            { srNo: 9, kendraCode: "PMBJK03975", name: "ANKUR KUSHWAH", contact: "8126082699", stateName: "Uttar Pradesh", pinCode: "208001", address: "U.H.M DISTRICT HOSPITAL" },
+            { srNo: 10, kendraCode: "PMBJK03976", name: "RAGHVENDRA DWIVEDI", contact: "9453895159", stateName: "Uttar Pradesh", pinCode: "208001", address: "U.H.M DISTRICT FEMALE HOSPITAL" },
+            { srNo: 11, kendraCode: "PMBJK05290", name: "VED PRAKASH BAJPAI", contact: "8287033777", stateName: "Uttar Pradesh", pinCode: "208002", address: "15. Mahaveer Nagar, Panki Kanpur Nagar" },
+            { srNo: 12, kendraCode: "PMBJK05872", name: "DEEPAK SRIVASTAVA", contact: "8694965560", stateName: "Uttar Pradesh", pinCode: "208011", address: "126/100A, B Block, Kidwai Nagar Kanpur" },
+            { srNo: 13, kendraCode: "PMBJK06868", name: "ANKIT PORWAL", contact: "8393005510", stateName: "Uttar Pradesh", pinCode: "208017", address: "Azazi no 313, Sri Bala ji market Mainswat road Singhpur Kachher Kalyanpur" },
+            { srNo: 14, kendraCode: "PMBJK07716", name: "Varun Verma", contact: "8293611366", stateName: "Uttar Pradesh", pinCode: "208014", address: "133/50 Block O, Hameerpur Road, Bara Devi Chasraha, Juhi Kanpur Nagar" },
+            { srNo: 15, kendraCode: "PMBJK07794", name: "RAGHVENDRA DWIVEDI", contact: "9453895159", stateName: "Uttar Pradesh", pinCode: "208021", address: "30. Hamirpur Road Naubasta" },
+            { srNo: 16, kendraCode: "PMBJK08039", name: "Sanjeev Tripathi", contact: "8318265559", stateName: "Uttar Pradesh", pinCode: "208021", address: "10.4e- 101/17 Ground Floor, Avas Vikas Scheme no. 2, Hanspuram, Naubasta Gala Mand Kanpur Nagar" },
+            { srNo: 17, kendraCode: "PMBJK08281", name: "Ranwar Singh Chauhan", contact: "9450147480", stateName: "Uttar Pradesh", pinCode: "208011", address: "128/543/24 K, Kidwai Nagar Kanpur Nagar" },
+            { srNo: 18, kendraCode: "PMBJK09031", name: "Gaurav Tripathi", contact: "9199716277", stateName: "Uttar Pradesh", pinCode: "208022", address: "26. HG Vivekansnd Vher, W-2, Juhi Barra Karpur Nagar" },
+            { srNo: 19, kendraCode: "PMBJK09272", name: "Neha Baht", contact: "9452412190", stateName: "Uttar Pradesh", pinCode: "208012", address: "10. No. 119/439, Ground Floor, Shyam Bhawan Chasraha, Darshan purwa, R.K, Nagar Bhitargaon" },
+            { srNo: 20, kendraCode: "PMBJK09296", name: "Gyanendra Singh", contact: "8052054374", stateName: "Uttar Pradesh", pinCode: "208011", address: "338-A, K-Block, Namak Factory Chasraha, Yashoda Nagar Kanpur" },
+            { srNo: 21, kendraCode: "PMBJK09807", name: "Nalsy Awasthi", contact: "9415131169", stateName: "Uttar Pradesh", pinCode: "208011", address: "Ground Floor, H.No. L.I.G. 730, Ganyapur Colony, Yashoda Nagar, Kidwai Nagar Vidhunu" },
+            { srNo: 22, kendraCode: "PMBJK09921", name: "Saumya Gupta", contact: "8840590097", stateName: "Uttar Pradesh", pinCode: "208012", address: "Ground Floor, Near Market Gate, And Shukia Clinic, Pipri Road Chasbeypur" },
+            { srNo: 23, kendraCode: "PMBJK10497", name: "Ravindra singh", contact: "9997525552", stateName: "Uttar Pradesh", pinCode: "208019", address: "Pinahst Kanpur Nagar" },
+            { srNo: 24, kendraCode: "PMBJK10754", name: "Shweta Gupta", contact: "7905309709", stateName: "Uttar Pradesh", pinCode: "208022", address: "Ground Floor, H No. 130L-1/85, Bagahi, T P Nagar Kalyanpur" },
+            { srNo: 25, kendraCode: "PMBJK10777", name: "Rahul", contact: "8840573750", stateName: "Uttar Pradesh", pinCode: "208022", address: "House No 230 EWS Quarters, Grund Floor, Single Storey Hemant Vhar Barra 2 Kanpur" },
+            { srNo: 26, kendraCode: "PMBJK10948", name: "Roli Mishra", contact: "7052472844", stateName: "Uttar Pradesh", pinCode: "208022", address: "08 42/14 Ground Floor, Dabauli, Block-42, Udyog Nagar Kanpur Nagar" },
+            { srNo: 27, kendraCode: "PMBJK10969", name: "Sonam Chaturvedi", contact: "8726544445", stateName: "Uttar Pradesh", pinCode: "208011", address: "House No 78 A, Ground Floor, New Azad Nagar, Kidwai Nagar Kanpur Nagar" },
+            { srNo: 28, kendraCode: "PMBJK10990", name: "Neelu Mehrotra", contact: "8392618030", stateName: "Uttar Pradesh", pinCode: "208012", address: "107/80 A-2, Jawahar Nagar, Ashok Nagar Kanpur Nagar" },
+            { srNo: 29, kendraCode: "PMBJK11034", name: "Priyanshi Srivastava", contact: "8004262081", stateName: "Uttar Pradesh", pinCode: "208006", address: "shop no 5 ground floor H N 124/b/326 govind nagar kanpur Kanpur Nagar" },
+            { srNo: 30, kendraCode: "PMEJK11065", name: "Kabya", contact: "6394086079", stateName: "Uttar Pradesh", pinCode: "209206", address: "Arajikhara No 47, Ground Floor, Vill Palupur Ghatampur" },
+            { srNo: 31, kendraCode: "PMEJK11099", name: "Ravindra Singh CiO Brainpower HR Management Privat", contact: "9997225552", stateName: "Uttar Pradesh", pinCode: "", address: "Kalyanpur Kansur Nagar" },
+            { srNo: 32, kendraCode: "PMEJK11211", name: "Jagoreet Kaur Bhatia", contact: "9336223849", stateName: "Uttar Pradesh", pinCode: "209206", address: "H. No. 218/8, Ground Floor, Shasti Nagar, Kansu Kaper Nagar" },
+            { srNo: 33, kendraCode: "PMEJK11619", name: "Amrita Singh", contact: "7007970834", stateName: "Uttar Pradesh", pinCode: "209207", address: "Shop No 4, Ground Floor, Bhavan Laxmi Rajat, Plot No 03/PA-8, Yojna Sankhya-3, Ambedkarpuram, Awas V Kalyanpur" },
+            { srNo: 34, kendraCode: "PMEJK11660", name: "Rati Mishra", contact: "8416852515", stateName: "Uttar Pradesh", pinCode: "209207", address: "Shop Number 40, Ground Floor, Block Ratan Lal Nagar Sch. Barra-3, Barra Kanpur Nagar" },
+            { srNo: 35, kendraCode: "PMEJK11777", name: "Vinay Kumar Shukla", contact: "8957526313", stateName: "Uttar Pradesh", pinCode: "209207", address: "H No 166, Ground Floor, LIG Jaraul (Phase 2), Barra Kanpur Nagar" },
+            { srNo: 36, kendraCode: "PMEJK12210", name: "Khushboo Gupta", contact: "7029476007", stateName: "Uttar Pradesh", pinCode: "209208", address: "House No 3/233 EWS 3 Block, Ground Floor, Swam Jayarti Vihar Satbari, Kidwai Nagar Vidhuna" },
+            { srNo: 37, kendraCode: "PMEJK12287", name: "Ravindra Singh (Director of Brainpower HR Management", contact: "9997225552", stateName: "Uttar Pradesh", pinCode: "209206", address: "Ghatampur, Kanpur Nagar Nagar" },
+            { srNo: 38, kendraCode: "PMEJK12289", name: "Ravindra Singh (Director of Brainpower HR Management", contact: "9997225552", stateName: "Uttar Pradesh", pinCode: "209204", address: "Bidhnu, Kanpur Nagar Kanpur Nagar" },
+            { srNo: 39, kendraCode: "PMEJK12339", name: "Gagi Kishan Mishra", contact: "9599933527", stateName: "Uttar Pradesh", pinCode: "209206", address: "Ground Floor, Khasara No. 1972, In the Premises of BPACS Patara, Vilage and Post Patara" },
+            { srNo: 40, kendraCode: "PMEJK12458", name: "Suresh Chandra Verma", contact: "8896991757", stateName: "Uttar Pradesh", pinCode: "209206", address: "Ground Floor, Khasara No. 181, In the Premises of BPACS Nauranga, Vilage and Post Nauranga Bhitargaon" },
+            { srNo: 41, kendraCode: "PMEJK12460", name: "Ram Asre", contact: "7007399890", stateName: "Uttar Pradesh", pinCode: "209202", address: "Ground Floor, Khasara No. 1324, In the Premises of B PACS Nasirapur, Vilage and Post Bakothi Kanpur Nagar" },
+            { srNo: 42, kendraCode: "PMEJK12461", name: "Siya Ram", contact: "9453286637", stateName: "Uttar Pradesh", pinCode: "209207", address: "Khasra No-413, Bpacs Singhpur Kachhar, Vilage Singhpur, Baini Akharpur Kalyanpur" },
+            { srNo: 43, kendraCode: "PMEJK12551", name: "Raja Singh", contact: "9119984357", stateName: "Uttar Pradesh", pinCode: "209202", address: "Ground Floor, Khasara No.1012, Khata No.01193, At B PACS Meharajpur, Vilage Maharapur Sarrol" },
+            { srNo: 44, kendraCode: "PMEJK12602", name: "Anurag Awasthi", contact: "9236555848", stateName: "Uttar Pradesh", pinCode: "209202", address: "Ground Floor, House No. C-01, Chakeri, New Pac Line Kanpur Nagar" },
+            { srNo: 45, kendraCode: "PMEJK12634", name: "Neha Sharma", contact: "9589693465", stateName: "Uttar Pradesh", pinCode: "209201", address: "Ground Floor, H Na. 128/134, S-Block, Yashoda Nagar, Kidwai Nagar Kanpur Nagar" },
+            { srNo: 46, kendraCode: "PMEJK12670", name: "Ajay Pai Yadav", contact: "8317042862", stateName: "Uttar Pradesh", pinCode: "209201", address: "Ground Floor, Khasara No. 490, In the Premises of BPACS Khasra, Vilage Khersa, Bidhnoo Vidhunu" },
+            { srNo: 47, kendraCode: "PMEJK12680", name: "Rajendra Prasad Agnihotri", contact: "9838748193", stateName: "Uttar Pradesh", pinCode: "209202", address: "Ground Floor, Khasra No. 45, in the Premises of B Pacs Bhaisau, Jagdishpur, Town Area Shivrajpur" },
+            { srNo: 48, kendraCode: "PMEJK12715", name: "Sita Pai", contact: "8318132282", stateName: "Uttar Pradesh", pinCode: "209202", address: "Ground Floor, Khasara No. 158, In the Premises of B PACS Shahampur Kot, Town Area Bihar, Bibpur Bilhaur" },
+            { srNo: 49, kendraCode: "PMEJK12739", name: "Rajendra Singh", contact: "8090266583", stateName: "Uttar Pradesh", pinCode: "209201", address: "Ground Floor, Khasara No. 1066MI, In the Premises of BPACS Majhawan Vilage and Post Majhawan Kanpur Nagar" },
+            { srNo: 50, kendraCode: "PMEJK12863", name: "Raju Singh", contact: "7985233139", stateName: "Uttar Pradesh", pinCode: "209201", address: "Ground Floor, Khasra No.1017, In the premises of Bpecs Bausar, Vilage Bausar Taus Chauraha Sarsol" },
+            { srNo: 51, kendraCode: "PMEJK12866", name: "Surendra Kumar Verma", contact: "9450462939", stateName: "Uttar Pradesh", pinCode: "209201", address: "Ground Floor, H Na. 14/146-A, In the Premises of Kanpur Thak Kendriya Upohokta Sahkari Bhandar Ltd Kanpur Nagar" },
+            { srNo: 52, kendraCode: "PMEJK13037", name: "Farida Khatoon", contact: "9918997222", stateName: "Uttar Pradesh", pinCode: "209202", address: "House No. 521, Ground Floor, Shiv Katra, Harjnder Nagar Kanpur Nagar" },
+            { srNo: 53, kendraCode: "PMEJK13135", name: "Sanja Maurya", contact: "9394442740", stateName: "Uttar Pradesh", pinCode: "209201", address: "House No. 168, Ground Floor, Ashok Nagar Kalyanpur" },
+            { srNo: 54, kendraCode: "PMEJK13203", name: "Poqja Saini", contact: "9616145756", stateName: "Uttar Pradesh", pinCode: "209201", address: "House No. 12/42, Ground Floor, I-Block, Aawas Vikas Kalyanpur" },
+            { srNo: 55, kendraCode: "PMEJK13265", name: "Anup Kumar Shukla", contact: "9415536079", stateName: "Uttar Pradesh", pinCode: "209202", address: "Ground Floor, House No. 113/237, Swaroop Nagar, Nawabganj Kanpur Nagar" },
+            { srNo: 56, kendraCode: "PMEJK13391", name: "Panikuri Gupta", contact: "8299036577", stateName: "Uttar Pradesh", pinCode: "209201", address: "Shop No 240, Express Road, Bada Chauraha Kanpur Nagar" },
+            { srNo: 57, kendraCode: "PMBJK13615", name: "Nimala Devi", contact: "9044148499", stateName: "Uttar Pradesh", pinCode: "208003", address: "Ground Floor, House No. 86325, Dev Nagar, Anwarganj Kanpur Nagar" },
+            { srNo: 58, kendraCode: "PMBJK13743", name: "Ekda Dwived", contact: "8115269720", stateName: "Uttar Pradesh", pinCode: "208021", address: "Ground Floor, Shop No. 61, Naveen Gala Mand (Super Market) Mand Samit Samirpur road, Naubasta Kanpur Nagar" },
+            { srNo: 59, kendraCode: "PMBJK13930", name: "Anshu Srivastava", contact: "7379925676", stateName: "Uttar Pradesh", pinCode: "208002", address: "Shop No. 1 Premises No. 2448, Ground Floor, Nawabgan Kanpur Nagar" },
+            { srNo: 60, kendraCode: "PMBJK14105", name: "Pratibha Chaturved", contact: "8726644446", stateName: "Uttar Pradesh", pinCode: "208021", address: "Plot No 8, Arazi No 257, Ground Floor, Sarigawan Road, Sanigawan Kanpur Nagar" },
+            { srNo: 61, kendraCode: "PMBJK14244", name: "Anchana", contact: "7651897619", stateName: "Uttar Pradesh", pinCode: "208027", address: "House no-10637, Ground Floor, World Bank Block-I Barra Kanpur Nagar" },
+            { srNo: 62, kendraCode: "PMBJK14512", name: "Anjali Sharma", contact: "9511035089", stateName: "Uttar Pradesh", pinCode: "208021", address: "Arazi No-1872, Shop No-1, Bcodpur,Machhariya Sarsol" },
+            { srNo: 63, kendraCode: "PMBJK14564", name: "Madhuri Senger", contact: "7658825162", stateName: "Uttar Pradesh", pinCode: "208027", address: "Plot No 4 and 5, Ground Floor, Jaradi Phase 1, Barra Kanpur Nagar" },
+            { srNo: 64, kendraCode: "PMBJK14737", name: "Shalni Gupta", contact: "9956901209", stateName: "Uttar Pradesh", pinCode: "208011", address: "House No. 1260102, Ground Floor, Block-G, Kidwai Nagar Kanpur Nagar" },
+            { srNo: 65, kendraCode: "PMBJK14805", name: "Sanja Mishra", contact: "8419077258", stateName: "Uttar Pradesh", pinCode: "208011", address: "House No. GPN/ARNO/31/19, Ground Floor, Gopal Nagar, Kidwai Nagar Kanpur Nagar" },
+            { srNo: 66, kendraCode: "PMBJK14879", name: "Sumen Lata Upadhyay", contact: "9336255721", stateName: "Uttar Pradesh", pinCode: "208012", address: "No. 104/429-A, Ground Floor, Sismau, R K Nagar Kanpur Nagar" },
+            { srNo: 67, kendraCode: "PMBJK15052", name: "Shradcha Rathore", contact: "9936998878", stateName: "Uttar Pradesh", pinCode: "208021", address: "Ground Floor, 9-(Rahwa No.), Tauchakar, Nallamand, Naubasta Vidhuna" },
+            { srNo: 68, kendraCode: "PMBJK15053", name: "Ntu Bajpai", contact: "8287033777", stateName: "Uttar Pradesh", pinCode: "208017", address: "2646 A, Avk-III/Sadbhawana Nagar, Awk-III Kanpur Nagar" },
+            { srNo: 69, kendraCode: "PMBJK15063", name: "Kusam Lata", contact: "8299470611", stateName: "Uttar Pradesh", pinCode: "208014", address: "Ground Floor, House No. 127/343, U-Block, Nrala Nagar, Juhi Colony Kanpur Nagar" },
+            { srNo: 70, kendraCode: "PMBJK15079", name: "Parha Naz", contact: "9918156047", stateName: "Uttar Pradesh", pinCode: "208010", address: "No.-TP/140, Ground Floor, Tiwaripur-E, Shiwaans Tanery Sarsol" },
+            { srNo: 71, kendraCode: "PMBJK15179", name: "Pithi Jaiswal", contact: "8574547423", stateName: "Uttar Pradesh", pinCode: "208022", address: "Ground Floor, AaraziKhasara No. 2592, Sarsaul-II Sarsol" },
+            { srNo: 72, kendraCode: "PMBJK15239", name: "Suman Arya", contact: "9415731940", stateName: "Uttar Pradesh", pinCode: "208019", address: "84-C, Near Saryanarayan Saraswat Shikcha Nhetan, Sahakar Nagar (D K Puram), Naswarpur, Sayyed nags Kanpur Nagar" },
+            { srNo: 73, kendraCode: "PMBJK15333", name: "Poonam Bajpai", contact: "8287033777", stateName: "Uttar Pradesh", pinCode: "208020", address: "PKB/546-A, B-Block Parki Kalyanpur" },
+            { srNo: 74, kendraCode: "PMBJK15366", name: "Rama Shukla", contact: "9452796368", stateName: "Uttar Pradesh", pinCode: "208019", address: "House No-116/654 (C-2) Ground Floor, Rawalpur Kalyanpur" },
+            { srNo: 75, kendraCode: "PMBJK15458", name: "Neha", contact: "9335532644", stateName: "Uttar Pradesh", pinCode: "208027", address: "House No-438 A-1, Ground Floor, (Church Road), Safpur-II, Harjnder Nagar Kanpur Nagar" },
+            { srNo: 76, kendraCode: "PMBJK16215", name: "Rstika Awasthi", contact: "9936402449", stateName: "Uttar Pradesh", pinCode: "208021", address: "Ground Floor, House No-9.8.266, Khadapur, Khandepur, Naubasta, Kanpur Nagar Karpur Nagar" },
+            { srNo: 77, kendraCode: "PMBJK16384", name: "Anjana Singh", contact: "7275911690", stateName: "Uttar Pradesh", pinCode: "208024", address: "Ground House No. H No. 274/1/B, Indra Niketan Vidyslay, Harisganj Rai Bazar, Camit Kanpur Nagar" },
+            { srNo: 78, kendraCode: "PMBJK16561", name: "Alpana Srivastava", contact: "8318553429", stateName: "Uttar Pradesh", pinCode: "208021", address: "64/202 Ground Floor, Gadariya Mohal, Harbarsh Mohal Kanpur" },
+            { srNo: 79, kendraCode: "PMBJK17249", name: "Sarla Singh", contact: "7905022745", stateName: "Uttar Pradesh", pinCode: "208020", address: "Ground Floor, House No 9/60, Arya Nagar, Thana Coloneganj, Kanpur Sadar Kanpur Nagar" },
+            { srNo: 80, kendraCode: "PMBJK17251", name: "Tabassum Parveen", contact: "9415133504", stateName: "Uttar Pradesh", pinCode: "208010", address: "Ground Floor, Plot No 57, Aaraz No 680mi, Gangavhar, Gajuquma Thana Jajmau, Kanpur Sadar Kanpur Nagar" },
+            { srNo: 81, kendraCode: "PMBJK17409", name: "Suman Lata Upadhyay", contact: "9616639102", stateName: "Uttar Pradesh", pinCode: "208021", address: "12/541, Lower Ground Floor, Mahrawat Ganj Gwaltil Ratan Dham, Kanpur Sadar Kanpur Nagar" },
+            { srNo: 82, kendraCode: "PMBJK17725", name: "Bhati Shama", contact: "9161766555", stateName: "Uttar Pradesh", pinCode: "208022", address: "Gown, Gsvm Medical College Swaroop Nagar, Kanpur, Swaroop Nagar" },
+            { srNo: 83, kendraCode: "PMBJK17728", name: "Bhati Shama", contact: "9161766555", stateName: "Uttar Pradesh", pinCode: "208020", address: "Chc, Community Health Centre Sarsaul Kanpur, Nagar, Kanpur Nagar" },
+            { srNo: 84, kendraCode: "PMBJK17729", name: "Bhati Shama", contact: "9161766555", stateName: "Uttar Pradesh", pinCode: "208014", address: "Chc, Community Health Center Bidhroo Kanpur, Nagar, Community Health Center Bichnoo" },
+            { srNo: 85, kendraCode: "PMBJK17730", name: "Bhati Shama", contact: "9161766555", stateName: "Uttar Pradesh", pinCode: "208020", address: "Chc, Community Health Center Ghatampur, Kanpur, Nagar, Community Health Center Ghatampur" },
+            { srNo: 86, kendraCode: "PMBJK17731", name: "Bhati Shama", contact: "9161766555", stateName: "Uttar Pradesh", pinCode: "208017", address: "Chc, Che Kalyanpur Kanpur, Nanpur, Community Health Center Kalyanpur" },
+            { srNo: 87, kendraCode: "PMBJK17732", name: "Bhati Shama", contact: "9161766555", stateName: "Uttar Pradesh", pinCode: "208021", address: "Aym, Aym And Dutterin Hospital Kanpur, Nagar, Aym And Dutterin Hospital" },
+            { srNo: 88, kendraCode: "PMEJK17733", name: "Bharti Shama", contact: "9161766555", stateName: "Uttar Pradesh", pinCode: "208001", address: "39, 39/24,Meston Road,Parade,Kanpur, Kanpur Nagar" },
+            { srNo: 89, kendraCode: "PMEJK17800", name: "Bharti Shama", contact: "9161766555", stateName: "Uttar Pradesh", pinCode: "208007", address: "HOSP, MANYAWAR KASHIRAM COMBINED HOSPITAL AND TRAUMA CENTRE KANPUR, LAL BANGLA" }
+        
+        ];
+        const medicines = [
+            { medicineName: "Aceclofenac 100mg and Paracetamol 325mg Tablets", packSize: "10's", priceINR: 10.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Pain, Fever, Inflammation", genericSubstitutes: "Aceclo Plus (Mankind), Zerodol-P (Cipla)", brandedPriceINR: "50-60" },
+            { medicineName: "Aceclofenac Tablets IP 100 mg", packSize: "10's", priceINR: 8.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Pain, Inflammation", genericSubstitutes: "Aceclo (Mankind), Zerodol (Cipla)", brandedPriceINR: "40-50" },
+            { medicineName: "Aspirin Gastro-resistant Tablets IP 150 mg", packSize: "14's", priceINR: 5.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Pain, Fever, Blood Thinning", genericSubstitutes: "Ecosprin (Cipla substitute, not Mankind-specific)", brandedPriceINR: "10-15" },
+            { medicineName: "Chlorzoxazone 500mg, Diclofenac 50mg and Paracetamol 325mg Tablets", packSize: "10's", priceINR: 25.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Muscle Pain, Inflammation, Fever", genericSubstitutes: "Dicloran-MR (Mankind), Voveran Plus (Cipla)", brandedPriceINR: "70-90" },
+            { medicineName: "Diclofenac Sodium Prolonged Release Tablets IP 100 mg", packSize: "10's", priceINR: 12.1, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Chronic Pain, Inflammation", genericSubstitutes: "Dicloran SR (Mankind), Voveran SR (Cipla)", brandedPriceINR: "50-70" },
+            { medicineName: "Diclofenac Sodium Injection IP 25mg per ml", packSize: "3 ml", priceINR: 4.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Acute Pain, Inflammation", genericSubstitutes: "Dicloran Inj (Mankind), Voveran Inj (Cipla)", brandedPriceINR: "20-30" },
+            { medicineName: "Diclofenac Gastro-Resistant Tablets IP 50 mg", packSize: "10's", priceINR: 5.5, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Pain, Inflammation", genericSubstitutes: "Dicloran (Mankind), Voveran (Cipla)", brandedPriceINR: "30-40" },
+            { medicineName: "Etoricoxib Tablets IP 120 mg", packSize: "10's", priceINR: 38.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Arthritis Pain, Inflammation", genericSubstitutes: "Etoshine 120 (Mankind substitute, not Cipla-specific)", brandedPriceINR: "100-120" },
+            { medicineName: "Etoricoxib Tablets IP 90 mg", packSize: "10's", priceINR: 31.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Arthritis Pain, Inflammation", genericSubstitutes: "Etoshine 90 (Mankind substitute, not Cipla-specific)", brandedPriceINR: "80-100" },
+            { medicineName: "Ibuprofen 400mg and Paracetamol 325mg Tablets IP", packSize: "10's", priceINR: 8.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Pain, Fever", genericSubstitutes: "Combiflam (Mankind substitute, not Cipla-specific)", brandedPriceINR: "30-40" },
+            { medicineName: "Ibuprofen Tablets IP 200 mg", packSize: "10's", priceINR: 3.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Pain, Inflammation", genericSubstitutes: "Brufen (Cipla substitute, not Mankind-specific)", brandedPriceINR: "15-25" },
+            { medicineName: "Ibuprofen Tablets IP 400 mg", packSize: "15's", priceINR: 8.8, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Pain, Inflammation", genericSubstitutes: "Brufen 400 (Cipla substitute, not Mankind-specific)", brandedPriceINR: "30-45" },
+            { medicineName: "Indomethacin Capsules IP 25 mg", packSize: "10's", priceINR: 13.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Pain, Inflammation", genericSubstitutes: "Indocap (Mankind substitute, not Cipla-specific)", brandedPriceINR: "40-50" },
+            { medicineName: "Nimesulide 100mg and Paracetamol 325mg Tablets", packSize: "10's", priceINR: 11.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Pain, Fever", genericSubstitutes: "Nicip Plus (Cipla), Nimulid-P (Mankind)", brandedPriceINR: "40-50" },
+            { medicineName: "Nimesulide Tablets 100 mg", packSize: "10's", priceINR: 6.6, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Pain, Inflammation", genericSubstitutes: "Nicip (Cipla), Nimulid (Mankind)", brandedPriceINR: "30-40" },
+            { medicineName: "Diclofenac Sodium 50mg and Paracetamol 325mg Tablets IP", packSize: "10's", priceINR: 9.9, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Pain, Fever, Inflammation", genericSubstitutes: "Dicloran-P (Mankind), Voveran-D (Cipla)", brandedPriceINR: "40-50" },
+            { medicineName: "Paracetamol Paediatric Oral Suspension IP 125 mg per 5 ml", packSize: "60 ml", priceINR: 11.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Fever, Mild Pain", genericSubstitutes: "Crocin Drops (Mankind substitute, not Cipla-specific)", brandedPriceINR: "30-40" },
+            { medicineName: "Paracetamol Tablets IP 500 mg", packSize: "10's", priceINR: 7.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Fever, Mild Pain", genericSubstitutes: "Crocin 500 (Mankind substitute), Paracip (Cipla)", brandedPriceINR: "20-30" },
+            { medicineName: "Pentazocine Injection IP 30 mg per ml", packSize: "1 ml", priceINR: 15.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Severe Pain", genericSubstitutes: "Fortwin (Mankind substitute, not Cipla-specific)", brandedPriceINR: "25-35" },
+            { medicineName: "Serratiopeptidase Tablets IP 10 mg", packSize: "10's", priceINR: 12.1, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Swelling, Inflammation", genericSubstitutes: "Serratio-D (Mankind), Cipzen (Cipla)", brandedPriceINR: "50-60" },
+            { medicineName: "Tramadol Hydrochloride Injection 100 mg per 2 ml", packSize: "2 ml", priceINR: 8.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Moderate to Severe Pain", genericSubstitutes: "Tramasure Inj (Mankind), Contramal (Cipla)", brandedPriceINR: "20-30" },
+            { medicineName: "Tramadol HCl Injection 50mg 1 ml", packSize: "1 ml", priceINR: 5.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Moderate to Severe Pain", genericSubstitutes: "Tramasure Inj (Mankind), Contramal (Cipla)", brandedPriceINR: "15-25" },
+            { medicineName: "Tramadol Tablets 50mg", packSize: "10's", priceINR: 8.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Moderate to Severe Pain", genericSubstitutes: "Tramasure (Mankind), Contramal (Cipla)", brandedPriceINR: "40-50" },
+            { medicineName: "Dicyclomine Hydrochloride 10mg and Mefenamic Acid 250mg Tablets IP", packSize: "10's", priceINR: 13.2, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Menstrual Pain, Spasms", genericSubstitutes: "Meftal-Spas (Mankind substitute, not Cipla-specific)", brandedPriceINR: "40-50" },
+            { medicineName: "Paracetamol 325mg and Tramadol 37.5mg Tablets", packSize: "10's", priceINR: 13.2, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Moderate Pain, Fever", genericSubstitutes: "Ultracet (Mankind substitute, not Cipla-specific)", brandedPriceINR: "50-60" },
+            { medicineName: "Paracetamol Tablets IP 650 mg", packSize: "15's", priceINR: 15.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Fever, Mild Pain", genericSubstitutes: "Crocin 650 (Mankind substitute), Paracip 650 (Cipla)", brandedPriceINR: "30-40" },
+            { medicineName: "Aceclofenac 100mg, Paracetamol 325mg and Serratiopeptidase 15mg Tablets", packSize: "10's", priceINR: 19.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Pain, Fever, Swelling", genericSubstitutes: "Aceclo-Sera (Mankind), Zerodol-SP (Cipla)", brandedPriceINR: "70-90" },
+            { medicineName: "Piroxicam Capsules IP 20 mg", packSize: "10's", priceINR: 9.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Pain, Inflammation", genericSubstitutes: "Pirox (Cipla substitute, not Mankind-specific)", brandedPriceINR: "30-40" },
+            { medicineName: "Mefenamic Acid Suspension 100mg per 5ml", packSize: "60 ml", priceINR: 18.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Pain, Fever", genericSubstitutes: "Meftal Suspension (Mankind substitute, not Cipla-specific)", brandedPriceINR: "40-50" },
+            { medicineName: "Aceclofenac Sustained Release Tablets 200mg", packSize: "10's", priceINR: 20.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Chronic Pain, Inflammation", genericSubstitutes: "Aceclo SR (Mankind), Zerodol SR (Cipla)", brandedPriceINR: "60-80" },
+            { medicineName: "Thiocolchicoside 4mg and Aceclofenac 100mg Tablets", packSize: "10's", priceINR: 50.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Muscle Pain, Inflammation", genericSubstitutes: "Aceclo-TH (Mankind), Zerodol-TH (Cipla)", brandedPriceINR: "120-150" },
+            { medicineName: "Baclofen Tablets IP 10 mg", packSize: "10's", priceINR: 11.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Muscle Spasms", genericSubstitutes: "Liofen (Mankind substitute, not Cipla-specific)", brandedPriceINR: "40-50" },
+            { medicineName: "Ketorolac Tromethamine Tablets IP 10mg", packSize: "10's", priceINR: 10.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Severe Pain", genericSubstitutes: "Ketorol (Mankind substitute, not Cipla-specific)", brandedPriceINR: "40-50" },
+            { medicineName: "Tramadol Prolonged Release Tablets IP 100 mg", packSize: "10's", priceINR: 35.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Chronic Pain", genericSubstitutes: "Tramasure SR (Mankind), Contramal SR (Cipla)", brandedPriceINR: "80-100" },
+            { medicineName: "Naproxen Tablets IP 500 mg", packSize: "15's", priceINR: 48.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Pain, Inflammation", genericSubstitutes: "Naprosyn (Cipla substitute, not Mankind-specific)", brandedPriceINR: "80-100" },
+            { medicineName: "Paracetamol 325mg, Phenylephrine 10mg and Chlorpheniramine 2mg Tablets", packSize: "10's", priceINR: 22.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Cold, Fever", genericSubstitutes: "Sinarest (Mankind substitute, not Cipla-specific)", brandedPriceINR: "40-50" },
+            { medicineName: "Cetirizine Dihydrochloride 5mg, Phenylephrine Hydrochloride 10mg and Paracetamol 325mg Tablets", packSize: "10's", priceINR: 18.7, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Cold, Fever", genericSubstitutes: "Cetcip Cold (Cipla substitute, not Mankind-specific)", brandedPriceINR: "40-50" },
+            { medicineName: "Diclofenac Potassium 50mg, Paracetamol 325mg and Serratiopeptidase 10mg Tablets", packSize: "10's", priceINR: 19.8, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Pain, Fever, Swelling", genericSubstitutes: "Dicloran-SP (Mankind), Voveran-SP (Cipla)", brandedPriceINR: "70-90" },
+            { medicineName: "Aceclofenac 100mg, Paracetamol 325mg and Chlorzoxazone 250mg Tablets", packSize: "10's", priceINR: 16.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Muscle Pain, Fever", genericSubstitutes: "Aceclo-MR (Mankind), Zerodol-MR (Cipla)", brandedPriceINR: "60-80" },
+            { medicineName: "Nimesulid 100mg, Paracetamol 325mg and Chlorzoxazone 375mg Tablets", packSize: "10's", priceINR: 20.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Muscle Pain, Fever", genericSubstitutes: "Nimulid-MR (Mankind), Nicip-MR (Cipla)", brandedPriceINR: "60-80" },
+            { medicineName: "Mefenamic Acid 500mg and Paracetamol 325mg Tablets", packSize: "10's", priceINR: 17.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Pain, Fever", genericSubstitutes: "Meftal-Forte (Mankind substitute, not Cipla-specific)", brandedPriceINR: "50-60" },
+            { medicineName: "Piroxicam Dispersible Tablets 10 mg", packSize: "10's", priceINR: 10.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Pain, Inflammation", genericSubstitutes: "Pirox DT (Cipla substitute, not Mankind-specific)", brandedPriceINR: "30-40" },
+            { medicineName: "Piroxicam Dispersible Tablets 20 mg", packSize: "10's", priceINR: 21.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Pain, Inflammation", genericSubstitutes: "Pirox DT (Cipla substitute, not Mankind-specific)", brandedPriceINR: "40-50" },
+            { medicineName: "Piroxicam with bezyl alcohol Injection 20 mg", packSize: "1 ml", priceINR: 6.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Acute Pain, Inflammation", genericSubstitutes: "Pirox Inj (Cipla substitute, not Mankind-specific)", brandedPriceINR: "20-30" },
+            { medicineName: "Piroxicam with bezyl alcohol Injection 40 mg", packSize: "2 ml", priceINR: 12.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Acute Pain, Inflammation", genericSubstitutes: "Pirox Inj (Cipla substitute, not Mankind-specific)", brandedPriceINR: "30-40" },
+            { medicineName: "Paracetamol Oral Suspension IP 250mg per 5ml", packSize: "60 ml", priceINR: 21.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Fever, Mild Pain", genericSubstitutes: "Crocin Suspension (Mankind substitute), Paracip Suspension (Cipla)", brandedPriceINR: "40-50" },
+            { medicineName: "Etodolac Tablets IP 300mg", packSize: "10's", priceINR: 37.4, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Pain, Inflammation", genericSubstitutes: "Etura (Mankind substitute, not Cipla-specific)", brandedPriceINR: "80-100" },
+            { medicineName: "Mefenamic Acid 50mg and Paracetamol 125mg Suspension per 5ml", packSize: "60 ml", priceINR: 11.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Pain, Fever", genericSubstitutes: "Meftal-P Suspension (Mankind substitute, not Cipla-specific)", brandedPriceINR: "30-40" },
+            { medicineName: "Tizanidine Tablets I.P 2mg", packSize: "10's", priceINR: 10.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Muscle Spasms", genericSubstitutes: "Tizan (Mankind substitute, not Cipla-specific)", brandedPriceINR: "30-40" },
+            { medicineName: "Mefenamic Acid Tablets 250 mg", packSize: "10's", priceINR: 10.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Pain, Fever", genericSubstitutes: "Meftal 250 (Mankind substitute, not Cipla-specific)", brandedPriceINR: "30-40" },
+            { medicineName: "Mefenamic Acid Tablets 500 mg", packSize: "10's", priceINR: 17.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Pain, Fever", genericSubstitutes: "Meftal 500 (Mankind substitute, not Cipla-specific)", brandedPriceINR: "40-50" },
+            { medicineName: "Ketorolac Injection IP 30mg per ml", packSize: "1 ml", priceINR: 12.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Severe Pain", genericSubstitutes: "Ketorol Inj (Mankind substitute, not Cipla-specific)", brandedPriceINR: "25-35" },
+            { medicineName: "Drotaverine 80mg and Aceclofenac 100mg Tablets", packSize: "10's", priceINR: 33.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Pain, Spasms", genericSubstitutes: "Aceclo-Drot (Mankind substitute, not Cipla-specific)", brandedPriceINR: "70-90" },
+            { medicineName: "Naproxen Tablets IP 250 mg", packSize: "15's", priceINR: 23.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Pain, Inflammation", genericSubstitutes: "Naprosyn 250 (Cipla substitute, not Mankind-specific)", brandedPriceINR: "50-70" },
+            { medicineName: "Thiocolchicoside Capsules IP 4mg", packSize: "10's", priceINR: 45.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Muscle Spasms", genericSubstitutes: "Myoril (Mankind substitute, not Cipla-specific)", brandedPriceINR: "100-120" },
+            { medicineName: "Trypsin 48mg, Bromelain 90mg and Rutoside Trihydrate 100mg Tablets", packSize: "10's", priceINR: 70.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Swelling, Inflammation", genericSubstitutes: "Enzoflam (Mankind substitute, not Cipla-specific)", brandedPriceINR: "150-180" },
+            { medicineName: "Aceclofenac 200mg (Sustained release) and Rabeprazole Sodium 20mg (Enteric-coated) Capsules", packSize: "10's", priceINR: 30.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Pain, Inflammation, Acidity", genericSubstitutes: "Aceclo-Rab (Mankind substitute, not Cipla-specific)", brandedPriceINR: "80-100" },
+            { medicineName: "Aceclofenac 100mg, Paracetamol 325mg and Thiocolchicoside 4mg Tablets", packSize: "10's", priceINR: 55.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Muscle Pain, Fever", genericSubstitutes: "Aceclo-TH (Mankind), Zerodol-TH (Cipla)", brandedPriceINR: "130-160" },
+            { medicineName: "Aceclofenac 100mg, Paracetamol 325mg and Tizanidine 2mg Tablets", packSize: "10's", priceINR: 20.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Muscle Pain, Fever", genericSubstitutes: "Aceclo-Tiz (Mankind substitute, not Cipla-specific)", brandedPriceINR: "60-80" },
+            { medicineName: "Camylofin Dihydrochloride 25mg and Paracetamol 300mg Tablets", packSize: "10's", priceINR: 20.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Pain, Spasms", genericSubstitutes: "Anaspas (Mankind substitute, not Cipla-specific)", brandedPriceINR: "50-60" },
+            { medicineName: "Diclofenac Diethylamine 1.16% w/w, Thiocholchicoside 0.125% w/w, Linseed Oil 3% w/w, Methylsalicylate 10% w/w and Menthol 5% w/w Gel", packSize: "30 gm", priceINR: 50.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Muscle Pain, Inflammation", genericSubstitutes: "Volini Gel (Mankind substitute, not Cipla-specific)", brandedPriceINR: "100-120" },
+            { medicineName: "Diclofenac Potassium 50mg and Metaxalone 400mg Tablets", packSize: "10's", priceINR: 50.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Muscle Pain, Inflammation", genericSubstitutes: "Flexura-D (Mankind substitute, not Cipla-specific)", brandedPriceINR: "120-150" },
+            { medicineName: "Diclofenac Prolonged release Tablets IP 75 mg", packSize: "10's", priceINR: 10.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Chronic Pain, Inflammation", genericSubstitutes: "Dicloran SR (Mankind), Voveran SR (Cipla)", brandedPriceINR: "40-60" },
+            { medicineName: "Etoricoxib 60mg and Paracetamol 325mg Tablets", packSize: "10's", priceINR: 27.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Pain, Fever", genericSubstitutes: "Et Ascorbic Acid Injection IP 100 mg per ml", packSize: "2 ml", priceINR: 8.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Moderate to Severe Pain", genericSubstitutes: "Tramasure Inj (Mankind), Contramal (Cipla)", brandedPriceINR: "20-30" },
+            { medicineName: "Etoricoxib 60mg and Thiocolchicoside 4mg Tablets", packSize: "10's", priceINR: 60.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Muscle Pain, Inflammation", genericSubstitutes: "Etoshine-TH (Mankind substitute, not Cipla-specific)", brandedPriceINR: "130-160" },
+            { medicineName: "Ibuprofen 100mg and Paracetamol/Acetaminophen 162.5mg Oral Suspension", packSize: "100 ml", priceINR: 23.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Fever, Pain", genericSubstitutes: "Ibugesic Plus (Cipla substitute, not Mankind-specific)", brandedPriceINR: "40-50" },
+            { medicineName: "Naproxen 250 mg and Domperidone 10 mg Tablet", packSize: "10's", priceINR: 30.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Pain, Nausea", genericSubstitutes: "Naprosyn-D (Cipla substitute, not Mankind-specific)", brandedPriceINR: "60-80" },
+            { medicineName: "Naproxen 500 mg and Domperidone 10 mg Tablet", packSize: "10's", priceINR: 52.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Pain, Nausea", genericSubstitutes: "Naprosyn-D (Cipla substitute, not Mankind-specific)", brandedPriceINR: "100-120" },
+            { medicineName: "Nimesulide 100 mg, Paracetamol 325 mg and Serratiopeptidase 15 mg Tablet", packSize: "10's", priceINR: 25.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Pain, Fever, Swelling", genericSubstitutes: "Nimulid-SP (Mankind), Nicip-SP (Cipla)", brandedPriceINR: "70-90" },
+            { medicineName: "Paracetamol Infusion IP 1 gm per 100 ml", packSize: "100 ml", priceINR: 50.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Fever, Pain", genericSubstitutes: "Perfalgan (Mankind substitute, not Cipla-specific)", brandedPriceINR: "150-200" },
+            { medicineName: "Paracetamol Drops 100 mg per ml", packSize: "15 ml", priceINR: 13.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Fever, Mild Pain", genericSubstitutes: "Crocin Drops (Mankind substitute), Paracip Drops (Cipla)", brandedPriceINR: "30-40" },
+            { medicineName: "Paracetamol 162.5 mg and Tramadol 18.75 mg Tablet", packSize: "10's", priceINR: 10.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Moderate Pain, Fever", genericSubstitutes: "Ultracet (Mankind substitute, not Cipla-specific)", brandedPriceINR: "50-60" },
+            { medicineName: "Paracetamol 500mg and Caffeine 25mg Tablet IP", packSize: "10's", priceINR: 12.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Fever, Headache", genericSubstitutes: "Crocin Advance (Mankind substitute, not Cipla-specific)", brandedPriceINR: "30-40" },
+            { medicineName: "Paracetamol 500mg and Chlorzoxazone 250mg Tablet", packSize: "10's", priceINR: 16.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Muscle Pain, Fever", genericSubstitutes: "Aceclo-MR (Mankind substitute, not Cipla-specific)", brandedPriceINR: "50-60" },
+            { medicineName: "Paracetamol 500 mg, Phenylephrine 10 mg and Chlorpheniramine 2 mg Tablet", packSize: "10's", priceINR: 14.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Cold, Fever", genericSubstitutes: "Sinarest (Mankind substitute, not Cipla-specific)", brandedPriceINR: "40-50" },
+            { medicineName: "Paracetamol Suspension IP 120 mg", packSize: "60 ml", priceINR: 13.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Fever, Mild Pain", genericSubstitutes: "Crocin Suspension (Mankind substitute), Paracip Suspension (Cipla)", brandedPriceINR: "30-40" },
+            { medicineName: "Trypsin 48mg, Bromelain 90mg, Rutoside Trihydrate 100mg and Diclofenac Sodium 50mg Tablets", packSize: "10's", priceINR: 50.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Swelling, Pain", genericSubstitutes: "Enzoflam-D (Mankind substitute, not Cipla-specific)", brandedPriceINR: "120-150" },
+            { medicineName: "Aceclofenac 100Mg, Paracetamol 325Mg And Trypsin-Chymotrypsin 150000Au Tablets", packSize: "10's", priceINR: 40.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Pain, Swelling", genericSubstitutes: "Aceclo-Tryp (Mankind substitute, not Cipla-specific)", brandedPriceINR: "100-120" },
+            { medicineName: "Paracetamol Tablets IP 1000 Mg", packSize: "10's", priceINR: 16.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Fever, Mild Pain", genericSubstitutes: "Crocin 1000 (Mankind substitute), Paracip 1000 (Cipla)", brandedPriceINR: "40-50" },
+            { medicineName: "Ketorolac Tromethamine Dispersible Tablet 10 mg", packSize: "10's", priceINR: 10.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Severe Pain", genericSubstitutes: "Ketorol DT (Mankind substitute, not Cipla-specific)", brandedPriceINR: "40-50" },
+            { medicineName: "Diclofenac Sodium Suppositories 100mg", packSize: "5's", priceINR: 0.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Pain, Inflammation", genericSubstitutes: "Voveran Suppository (Cipla substitute, not Mankind-specific)", brandedPriceINR: "30-40" },
+            { medicineName: "Ketorolac Tromethamine Ophthalmic Solution 0.4% w/v", packSize: "5ml Drops", priceINR: 0.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Eye Pain, Inflammation", genericSubstitutes: "Ketorol Eye Drops (Mankind substitute, not Cipla-specific)", brandedPriceINR: "50-60" },
+            { medicineName: "Paracetamol 650mg and Caffeine 50mg Tablets IP", packSize: "10's", priceINR: 19.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Fever, Headache", genericSubstitutes: "Crocin Advance (Mankind substitute, not Cipla-specific)", brandedPriceINR: "40-50" },
+            { medicineName: "Sumatriptan 85mg and Naproxen 500mg Tablets", packSize: "2's", priceINR: 50.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Migraine, Pain", genericSubstitutes: "Naprosyn-M (Cipla substitute, not Mankind-specific)", brandedPriceINR: "60-80" },
+            { medicineName: "Flupirtine Maleate Capsules 100mg", packSize: "10's", priceINR: 35.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Pain", genericSubstitutes: "Flupirtine (Mankind substitute, not Cipla-specific)", brandedPriceINR: "80-100" },
+            { medicineName: "Lornoxicam 8mg and Paracetamol 325mg Tablets", packSize: "10's", priceINR: 25.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Pain, Fever", genericSubstitutes: "Lornasafe Plus (Mankind substitute, not Cipla-specific)", brandedPriceINR: "60-80" },
+            { medicineName: "Baclofen 20mg Extended Release (Gastric Retentive System) Tablets", packSize: "10's", priceINR: 30.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Muscle Spasms", genericSubstitutes: "Liofen XL (Mankind substitute, not Cipla-specific)", brandedPriceINR: "70-90" },
+            { medicineName: "Tapentadol 100mg Extended Release Tablets", packSize: "10's", priceINR: 65.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Chronic Pain", genericSubstitutes: "Tapenax ER (Mankind substitute, not Cipla-specific)", brandedPriceINR: "150-180" },
+            { medicineName: "Tapentadol 50mg Tablets", packSize: "10's", priceINR: 32.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Moderate to Severe Pain", genericSubstitutes: "Tapenax (Mankind substitute, not Cipla-specific)", brandedPriceINR: "80-100" },
+            { medicineName: "Aceclofenac 200mg and Cyclobenzaprine 15mg Sustained Release Tablets", packSize: "10's", priceINR: 0.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Muscle Pain, Inflammation", genericSubstitutes: "Aceclo-Cyclo (Mankind substitute, not Cipla-specific)", brandedPriceINR: "100-120" },
+            { medicineName: "Aceclofenac 100mg and Tizanidine 2mg Tablets", packSize: "10's", priceINR: 0.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Muscle Pain, Inflammation", genericSubstitutes: "Aceclo-Tiz (Mankind substitute, not Cipla-specific)", brandedPriceINR: "60-80" },
+            { medicineName: "Diclofenac Diethylamine 1.16% w/w, Sesame Oil 2.50% w/w, Linseed Oil 0.50% w/w, Methylsalicylate 10% w/w and Menthol 5% w/w Gel", packSize: "30gm Lami-Tube in Monopack", priceINR: 75.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Muscle Pain, Inflammation", genericSubstitutes: "Volini Gel (Mankind substitute, not Cipla-specific)", brandedPriceINR: "100-120" },
+            { medicineName: "Aceclofenac 1.00% w/w, Menthol 5.00% w/w Spray", packSize: "100ml", priceINR: 0.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Muscle Pain, Inflammation", genericSubstitutes: "Aceclo Spray (Mankind substitute, not Cipla-specific)", brandedPriceINR: "120-150" },
+            { medicineName: "Aceclofenac 1.5% w/w gel, 30g", packSize: "30g", priceINR: 0.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Pain, Inflammation", genericSubstitutes: "Aceclo Gel (Mankind), Zerodol Gel (Cipla)", brandedPriceINR: "60-80" },
+            { medicineName: "Diclofenac 200mg Transdermal patch", packSize: "10's in Mono-carton", priceINR: 0.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Chronic Pain, Inflammation", genericSubstitutes: "Voveran Patch (Cipla substitute, not Mankind-specific)", brandedPriceINR: "150-200" },
+            { medicineName: "Diclofenac Diethylamine 1.16% w/w, Sesame oil 2.5% w/w, Linseed oil 0.5% w/w, Methyl Salicylate 10% w/w & Menthol 5% w/w Gel", packSize: "30g in Mono-carton", priceINR: 0.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Muscle Pain, Inflammation", genericSubstitutes: "Volini Gel (Mankind substitute, not Cipla-specific)", brandedPriceINR: "100-120" },
+            { medicineName: "Diclofenac Sodium 2% w/v, Methyl Salicylate 10% w/v, Menthol 5%, Absolute alcohol 10% v/v Spray", packSize: "50ml", priceINR: 0.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Muscle Pain, Inflammation", genericSubstitutes: "Volini Spray (Mankind substitute, not Cipla-specific)", brandedPriceINR: "120-150" },
+            { medicineName: "Diclofenac Sodium 50mg and Thiocolchicoside 4mg Tablets", packSize: "10's", priceINR: 47.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Muscle Pain, Inflammation", genericSubstitutes: "Dicloran-TH (Mankind), Voveran-TH (Cipla)", brandedPriceINR: "120-150" },
+            { medicineName: "Diclofenac Sodium 50mg and Thiocolchicoside 8mg Tablets", packSize: "10's", priceINR: 60.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Muscle Pain, Inflammation", genericSubstitutes: "Dicloran-TH (Mankind), Voveran-TH (Cipla)", brandedPriceINR: "150-180" },
+            { medicineName: "Ibuprofen Oral Suspension 100mg/5ml", packSize: "100ml", priceINR: 12.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Fever, Pain", genericSubstitutes: "Ibugesic Suspension (Cipla substitute, not Mankind-specific)", brandedPriceINR: "40-50" },
+            { medicineName: "Ketoprofen 2.5% Gel", packSize: "30g in Mono-carton", priceINR: 0.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Pain, Inflammation", genericSubstitutes: "Ketopatch (Mankind substitute, not Cipla-specific)", brandedPriceINR: "60-80" },
+            { medicineName: "Janaushadhi Pain Relief Spray (Wintergreen Tel 20% w/w, karpura 10% w/w, turpentine Oil 10% w/w, Nilgiri ka Tel 6% w/w, Pudina ka Phool 4% w/w, Lavang ka Tel 1% w/w, Cinnamon Oil 0.5% w/w)", packSize: "50ml", priceINR: 0.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Muscle Pain, Inflammation", genericSubstitutes: "Volini Spray (Mankind substitute, not Cipla-specific)", brandedPriceINR: "120-150" },
+            { medicineName: "Tolperisone Hydrochloride 150mg and Diclofenac Sodium 50mg Tablets", packSize: "10's", priceINR: 20.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Muscle Pain, Inflammation", genericSubstitutes: "Tolperitas-D (Mankind substitute, not Cipla-specific)", brandedPriceINR: "60-80" },
+            { medicineName: "Tramadol Hydrochloride (IR) 50mg and Diclofenac Sodium (SR) 75mg Tablets", packSize: "10's", priceINR: 20.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Pain, Inflammation", genericSubstitutes: "Tramasure-D (Mankind substitute, not Cipla-specific)", brandedPriceINR: "60-80" },
+            { medicineName: "Ketoprofen 30 Mg Patch", packSize: "7's pack", priceINR: 0.0, category: "Analgesic/Antipyretic/Anti-Inflammatory", cause: "Pain, Inflammation", genericSubstitutes: "Ketopatch (Mankind substitute, not Cipla-specific)", brandedPriceINR: "100-120" }
+       
+        ];
+        const kendraAvailability = {
+            "PMBJK02453": ["Aceclofenac 100mg Tablets", "Paracetamol 500mg Tablets"],
+            "PMBJK02454": ["Paracetamol 500mg Tablets", "Amlodipine 5mg Tablets"],
+        };
+
+        // Cart Management
+        let cart = [];
+        let selectedKendra = null;
+        let filteredKendras = [];
+
+        // DOM Elements
+        const searchInput = document.getElementById('searchInput');
+        const searchBtn = document.getElementById('searchBtn');
+        const micBtn = document.getElementById('micBtn');
+        const pinCodeInput = document.getElementById('pinCodeInput');
+        const findKendraButton = document.getElementById('findKendraButton');
+        const status = document.getElementById('status');
+        const scanButton = document.getElementById('scanButton');
+        const cameraInput = document.getElementById('cameraInput');
+        const scanModal = document.getElementById('scanModal');
+        const scanPreview = document.getElementById('scanPreview');
+        const closeScanModal = document.getElementById('closeScanModal');
+        const retryScanBtn = document.getElementById('retryScanBtn');
+        const useScanBtn = document.getElementById('useScanBtn');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const textSelection = document.getElementById('textSelection');
+        const textItems = document.getElementById('textItems');
+        const kendraResults = document.getElementById('kendraResults');
+        const kendraTable = document.getElementById('kendraTable');
+        const results = document.getElementById('results');
+        const medicineTable = document.getElementById('medicineTable');
+        const resultsKendraSelect = document.getElementById('resultsKendraSelect');
+        const cartSection = document.getElementById('cartSection');
+        const cartTable = document.getElementById('cartTable');
+        const totalSavings = document.getElementById('totalSavings');
+        const clearCartBtn = document.getElementById('clearCartBtn');
+        const downloadCartPdfBtn = document.getElementById('downloadCartPdfBtn');
+        const downloadKendraPdfBtn = document.getElementById('downloadKendraPdfBtn');
+        const cartKendraSelect = document.getElementById('cartKendraSelect');
+        const checkAvailabilityBtn = document.getElementById('checkAvailabilityBtn');
+        const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+        const mobileMenu = document.getElementById('mobileMenu');
+        const autocompleteDropdown = document.getElementById('autocompleteDropdown');
+
+        // Mobile Menu Toggle
+        mobileMenuBtn.addEventListener('click', () => {
+            mobileMenu.classList.toggle('hidden');
+        });
+
+        // Voice Recognition Setup
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        let recognition;
+        if (SpeechRecognition) {
+            recognition = new SpeechRecognition();
+            recognition.lang = 'en-IN';
+            recognition.interimResults = false;
+            recognition.maxAlternatives = 1;
+
+            recognition.onresult = (event) => {
+                const transcript = event.results[0][0].transcript;
+                searchInput.value = transcript;
+                status.textContent = 'Voice input received: ' + transcript;
+                micBtn.classList.remove('listening');
+                searchMedicines(transcript);
+            };
+
+            recognition.onerror = (event) => {
+                status.textContent = 'Error occurred in recognition: ' + event.error;
+                micBtn.classList.remove('listening');
+            };
+
+            recognition.onend = () => {
+                micBtn.classList.remove('listening');
+            };
+        }
+
+        // Autocomplete Functionality
+        let activeSuggestionIndex = -1;
+
+        function showSuggestions(query) {
+            const suggestions = medicines.filter(med =>
+                med.medicineName.toLowerCase().includes(query.toLowerCase()) ||
+                med.cause.toLowerCase().includes(query.toLowerCase()) ||
+                med.category.toLowerCase().includes(query.toLowerCase()) ||
+                med.genericSubstitutes.toLowerCase().includes(query.toLowerCase())
+            ).slice(0, 5);
+
+            autocompleteDropdown.innerHTML = '';
+            activeSuggestionIndex = -1;
+
+            if (suggestions.length === 0 || query.length < 2) {
+                autocompleteDropdown.classList.add('hidden');
+                return;
+            }
+
+            suggestions.forEach((med, index) => {
+                const div = document.createElement('div');
+                div.className = 'autocomplete-item';
+                div.dataset.index = index;
+                div.dataset.value = med.medicineName;
+                div.innerHTML = `${med.medicineName} <span class="text-gray-400 text-xs">(${med.category})</span>`;
+                autocompleteDropdown.appendChild(div);
+
+                div.addEventListener('click', () => {
+                    searchInput.value = med.medicineName;
+                    autocompleteDropdown.classList.add('hidden');
+                    searchMedicines(med.medicineName);
+                });
+            });
+
+            autocompleteDropdown.classList.remove('hidden');
+        }
+
+        searchInput.addEventListener('input', () => {
+            const query = searchInput.value.trim();
+            showSuggestions(query);
+        });
+
+        searchInput.addEventListener('keydown', (event) => {
+            const items = autocompleteDropdown.querySelectorAll('.autocomplete-item');
+            if (items.length === 0) return;
+
+            if (event.key === 'ArrowDown') {
+                event.preventDefault();
+                activeSuggestionIndex = Math.min(activeSuggestionIndex + 1, items.length - 1);
+                updateActiveSuggestion(items);
+            } else if (event.key === 'ArrowUp') {
+                event.preventDefault();
+                activeSuggestionIndex = Math.max(activeSuggestionIndex - 1, -1);
+                updateActiveSuggestion(items);
+            } else if (event.key === 'Enter' && activeSuggestionIndex >= 0) {
+                event.preventDefault();
+                searchInput.value = items[activeSuggestionIndex].dataset.value;
+                autocompleteDropdown.classList.add('hidden');
+                searchMedicines(searchInput.value);
+            } else if (event.key === 'Escape') {
+                autocompleteDropdown.classList.add('hidden');
+                activeSuggestionIndex = -1;
+            }
+        });
+
+        function updateActiveSuggestion(items) {
+            items.forEach((item, index) => {
+                item.classList.toggle('active', index === activeSuggestionIndex);
+            });
+            if (activeSuggestionIndex >= 0) {
+                items[activeSuggestionIndex].scrollIntoView({ block: 'nearest' });
+            }
+        }
+
+        document.addEventListener('click', (event) => {
+            if (!searchInput.contains(event.target) && !autocompleteDropdown.contains(event.target)) {
+                autocompleteDropdown.classList.add('hidden');
+                activeSuggestionIndex = -1;
+            }
+        });
+
+        // Event Listeners
+        searchBtn.addEventListener('click', () => {
+            const query = searchInput.value.trim();
+            if (query) {
+                autocompleteDropdown.classList.add('hidden');
+                searchMedicines(query);
+            } else {
+                status.textContent = 'Please enter a medicine or condition';
+            }
+        });
+
+        micBtn.addEventListener('click', () => {
+            if (SpeechRecognition) {
+                micBtn.classList.add('listening');
+                status.textContent = 'Listening...';
+                autocompleteDropdown.classList.add('hidden');
+                recognition.start();
+            } else {
+                status.textContent = 'Speech recognition not supported in this browser';
+            }
+        });
+
+        findKendraButton.addEventListener('click', () => {
+            const pinCode = pinCodeInput.value.trim();
+            if (/^\d{6}$/.test(pinCode)) {
+                displayKendras(pinCode);
+            } else {
+                status.textContent = 'Please enter a valid 6-digit pin code';
+            }
+        });
+
+        // Scan Functionality
+        function preprocessImage(imgSrc, callback) {
+            const img = new Image();
+            img.src = imgSrc;
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = img.width;
+                canvas.height = img.height;
+                ctx.drawImage(img, 0, 0);
+
+                // Convert to grayscale
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const data = imageData.data;
+                for (let i = 0; i < data.length; i += 4) {
+                    const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
+                    data[i] = data[i + 1] = data[i + 2] = avg;
+                }
+                ctx.putImageData(imageData, 0, 0);
+
+                // Apply threshold (basic binarization)
+                const threshold = 128;
+                const binaryData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                for (let i = 0; i < binaryData.data.length; i += 4) {
+                    const avg = binaryData.data[i];
+                    const value = avg > threshold ? 255 : 0;
+                    binaryData.data[i] = binaryData.data[i + 1] = binaryData.data[i + 2] = value;
+                }
+                ctx.putImageData(binaryData, 0, 0);
+
+                callback(canvas.toDataURL('image/png'));
+            };
+        }
+
+        scanButton.addEventListener('click', () => {
+            cameraInput.click();
+        });
+
+        cameraInput.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    scanPreview.src = e.target.result;
+                    scanModal.classList.remove('hidden');
+                    textSelection.classList.add('hidden');
+                    useScanBtn.textContent = 'Scan Image';
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        closeScanModal.addEventListener('click', () => {
+            scanModal.classList.add('hidden');
+            cameraInput.value = '';
+            textSelection.classList.add('hidden');
+        });
+
+        retryScanBtn.addEventListener('click', () => {
+            scanModal.classList.add('hidden');
+            cameraInput.value = '';
+            textSelection.classList.add('hidden');
+            cameraInput.click();
+        });
+
+        useScanBtn.addEventListener('click', () => {
+            if (useScanBtn.textContent === 'Scan Image') {
+                loadingIndicator.classList.remove('hidden');
+                preprocessImage(scanPreview.src, (processedImage) => {
+                    Tesseract.recognize(
+                        processedImage,
+                        'eng',
+                        {
+                            logger: (m) => console.log(m),
+                            tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789- ',
+                            tessedit_pageseg_mode: 6,
+                        }
+                    ).then(({ data: { text } }) => {
+                        loadingIndicator.classList.add('hidden');
+                        const lines = text.split('\n').filter(line => line.trim().length > 3);
+                        if (lines.length === 0) {
+                            status.textContent = 'No recognizable text found';
+                            scanModal.classList.add('hidden');
+                            return;
+                        }
+                        textItems.innerHTML = '';
+                        lines.forEach(line => {
+                            const li = document.createElement('li');
+                            li.className = 'text-item';
+                            li.textContent = line;
+                            li.addEventListener('click', () => {
+                                document.querySelectorAll('.text-item').forEach(item => item.classList.remove('selected'));
+                                li.classList.add('selected');
+                                searchInput.value = line;
+                            });
+                            textItems.appendChild(li);
+                        });
+                        textSelection.classList.remove('hidden');
+                        useScanBtn.textContent = 'Use Selected Text';
+                    }).catch((err) => {
+                        loadingIndicator.classList.add('hidden');
+                        status.textContent = 'Error processing image: ' + err.message;
+                    });
+                });
+            } else {
+                scanModal.classList.add('hidden');
+                textSelection.classList.add('hidden');
+                if (searchInput.value) {
+                    status.textContent = 'Text selected: ' + searchInput.value;
+                    searchMedicines(searchInput.value);
+                } else {
+                    status.textContent = 'Please select a text item';
+                }
+            }
+        });
+
+        clearCartBtn.addEventListener('click', () => {
+            cart = [];
+            updateCart();
+        });
+
+        downloadCartPdfBtn.addEventListener('click', generateCartPDF);
+        downloadKendraPdfBtn.addEventListener('click', generateKendraPDF);
+
+        checkAvailabilityBtn.addEventListener('click', () => {
+            const kendraCode = cartKendraSelect.value;
+            if (!kendraCode) {
+                status.textContent = 'Please select a Kendra';
+                return;
+            }
+            if (cart.length === 0) {
+                status.textContent = 'Cart is empty';
+                return;
+            }
+            selectedKendra = kendras.find(k => k.kendraCode === kendraCode);
+            updateCart();
+            status.textContent = `Availability checked for ${selectedKendra.name}`;
+        });
+
+        resultsKendraSelect.addEventListener('change', () => {
+            const kendraCode = resultsKendraSelect.value;
+            if (kendraCode) {
+                selectedKendra = kendras.find(k => k.kendraCode === kendraCode);
+                status.textContent = `Selected Kendra: ${selectedKendra.name}`;
+                cartKendraSelect.value = kendraCode;
+            } else {
+                selectedKendra = null;
+                status.textContent = 'No Kendra selected';
+                cartKendraSelect.value = '';
+            }
+            updateCart();
+        });
+
+        cartKendraSelect.addEventListener('change', () => {
+            const kendraCode = cartKendraSelect.value;
+            if (kendraCode) {
+                selectedKendra = kendras.find(k => k.kendraCode === kendraCode);
+                status.textContent = `Selected Kendra: ${selectedKendra.name}`;
+                resultsKendraSelect.value = kendraCode;
+            } else {
+                selectedKendra = null;
+                status.textContent = 'No Kendra selected';
+                resultsKendraSelect.value = '';
+            }
+            updateCart();
+        });
+
+        // Functions
+        function searchMedicines(query) {
+            const filteredMedicines = medicines.filter(med =>
+                med.medicineName.toLowerCase().includes(query.toLowerCase()) ||
+                med.cause.toLowerCase().includes(query.toLowerCase()) ||
+                med.category.toLowerCase().includes(query.toLowerCase()) ||
+                med.genericSubstitutes.toLowerCase().includes(query.toLowerCase())
+            );
+            displayMedicines(filteredMedicines);
+        }
+
+        function displayMedicines(medicines) {
+            medicineTable.innerHTML = '';
+            if (medicines.length === 0) {
+                results.classList.add('hidden');
+                status.textContent = 'No medicines found';
+                return;
+            }
+            results.classList.remove('hidden');
+            medicines.forEach(med => {
+                const avgBrandedPrice = parseFloat(med.brandedPriceINR.split('-')[1]) || parseFloat(med.brandedPriceINR);
+                const savings = avgBrandedPrice - med.priceINR;
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td class="p-3 sm:p-4">${med.medicineName}</td>
+                    <td class="p-3 sm:p-4">${med.packSize}</td>
+                    <td class="p-3 sm:p-4">₹${med.priceINR.toFixed(2)}</td>
+                    <td class="p-3 sm:p-4">${med.category}</td>
+                    <td class="p-3 sm:p-4">${med.genericSubstitutes}</td>
+                    <td class="p-3 sm:p-4">${med.brandedPriceINR}</td>
+                    <td class="p-3 sm:p-4 text-green-600">₹${savings.toFixed(2)}</td>
+                    <td class="p-3 sm:p-4">
+                        <button class="add-to-cart bg-green-500 text-white px-2 sm:px-3 py-1 rounded-full hover:bg-green-600 text-xs sm:text-sm" data-medicine-name="${med.medicineName}" data-medicine-price="${med.priceINR}" data-branded-price="${med.brandedPriceINR}">Add to Cart</button>
+                    </td>
+                `;
+                medicineTable.appendChild(row);
+            });
+            attachAddToCartListeners();
+        }
+
+        function attachAddToCartListeners() {
+            const addToCartButtons = document.querySelectorAll('.add-to-cart');
+            addToCartButtons.forEach(button => {
+                button.removeEventListener('click', handleAddToCart);
+                button.addEventListener('click', handleAddToCart);
+            });
+        }
+
+        function handleAddToCart(event) {
+            const button = event.target;
+            try {
+                const medicine = {
+                    medicineName: button.dataset.medicineName,
+                    priceINR: parseFloat(button.dataset.medicinePrice),
+                    brandedPriceINR: button.dataset.brandedPrice
+                };
+                const avgBrandedPrice = parseFloat(medicine.brandedPriceINR.split('-')[1]) || parseFloat(medicine.brandedPriceINR);
+                const cartItem = {
+                    medicineName: medicine.medicineName,
+                    priceINR: medicine.priceINR,
+                    brandedPriceINR: medicine.brandedPriceINR,
+                    savings: avgBrandedPrice - medicine.priceINR,
+                    available: false
+                };
+                if (selectedKendra) {
+                    const availableMedicines = kendraAvailability[selectedKendra.kendraCode] || [];
+                    cartItem.available = availableMedicines.includes(medicine.medicineName);
+                }
+                cart.push(cartItem);
+                updateCart();
+                status.textContent = `${medicine.medicineName} added to cart`;
+            } catch (error) {
+                console.error('Error adding to cart:', error);
+                status.textContent = 'Error adding to cart';
+            }
+        }
+
+        function displayKendras(pinCode) {
+            filteredKendras = kendras.filter(kendra => kendra.pinCode === pinCode);
+            kendraTable.innerHTML = '';
+            resultsKendraSelect.innerHTML = '<option value="">Select a Kendra Location</option>';
+            cartKendraSelect.innerHTML = '<option value="">Select a Kendra</option>';
+            if (filteredKendras.length === 0) {
+                kendraResults.classList.add('hidden');
+                results.classList.add('hidden');
+                status.textContent = 'No Jan Aushadhi Kendras found for this pin code';
+                return;
+            }
+            kendraResults.classList.remove('hidden');
+            filteredKendras.forEach(kendra => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td class="p-3 sm:p-4">${kendra.name}</td>
+                    <td class="p-3 sm:p-4">${kendra.contact}</td>
+                    <td class="p-3 sm:p-4">${kendra.pinCode}</td>
+                    <td class="p-3 sm:p-4">${kendra.address}</td>
+                    <td class="p-3 sm:p-4">${kendra.kendraCode}</td>
+                    <td class="p-3 sm:p-4">
+                        <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(kendra.address)}" target="_blank" class="text-indigo-600 hover:underline text-xs sm:text-sm">View on Map</a>
+                    </td>
+                `;
+                kendraTable.appendChild(row);
+
+                const option1 = document.createElement('option');
+                option1.value = kendra.kendraCode;
+                option1.textContent = `${kendra.name} (${kendra.kendraCode})`;
+                resultsKendraSelect.appendChild(option1);
+
+                const option2 = document.createElement('option');
+                option2.value = kendra.kendraCode;
+                option2.textContent = `${kendra.name} (${kendra.kendraCode})`;
+                cartKendraSelect.appendChild(option2);
+            });
+        }
+
+        function updateCart() {
+            cartTable.innerHTML = '';
+            if (cart.length === 0) {
+                cartSection.classList.add('hidden');
+                return;
+            }
+            cartSection.classList.remove('hidden');
+            cart.forEach((item, index) => {
+                let availability = 'Not Checked';
+                if (selectedKendra) {
+                    const availableMedicines = kendraAvailability[selectedKendra.kendraCode] || [];
+                    availability = availableMedicines.includes(item.medicineName) ? 'Available' : 'Not Available';
+                    item.available = availableMedicines.includes(item.medicineName);
+                }
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td class="p-3 sm:p-4">${item.medicineName}</td>
+                    <td class="p-3 sm:p-4">₹${item.priceINR.toFixed(2)}</td>
+                    <td class="p-3 sm:p-4">${item.brandedPriceINR}</td>
+                    <td class="p-3 sm:p-4 text-green-600">₹${item.savings.toFixed(2)}</td>
+                    <td class="p-3 sm:p-4 ${availability === 'Available' ? 'text-green-600' : 'text-red-600'}">${availability}</td>
+                    <td class="p-3 sm:p-4">
+                        <button class="remove-from-cart text-red-500 hover:text-red-700 text-xs sm:text-sm" data-index="${index}">Remove</button>
+                    </td>
+                `;
+                cartTable.appendChild(row);
+            });
+
+            const total = cart.reduce((sum, item) => sum + item.savings, 0);
+            totalSavings.textContent = `₹${total.toFixed(2)}`;
+
+            document.querySelectorAll('.remove-from-cart').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const index = parseInt(btn.dataset.index);
+                    cart.splice(index, 1);
+                    updateCart();
+                });
+            });
+        }
+
+        function generateCartPDF() {
+            try {
+                if (cart.length === 0) {
+                    status.textContent = 'Cart is empty';
+                    return;
+                }
+                const doc = new jsPDF();
+                doc.setFontSize(20);
+                doc.text('MediLens - Your Medicine Cart', 20, 20);
+                doc.setFontSize(12);
+                doc.text('Date: ' + new Date().toLocaleDateString(), 20, 30);
+
+                let y = 50;
+                doc.setFontSize(14);
+                doc.text('Medicines in Cart:', 20, y);
+                y += 10;
+
+                doc.setFontSize(10);
+                cart.forEach((item, index) => {
+                    const availability = item.available ? 'Available' : selectedKendra ? 'Not Available' : 'Not Checked';
+                    const textLines = [
+                        `${index + 1}. ${item.medicineName}`,
+                        `Generic Price: ₹${item.priceINR.toFixed(2)}`,
+                        `Branded Price: ${item.brandedPriceINR}`,
+                        `Savings: ₹${item.savings.toFixed(2)}`,
+                        `Availability: ${availability}`
+                    ];
+                    textLines.forEach((line, i) => {
+                        doc.text(line, 20, y + (i * 5));
+                    });
+                    y += 30;
+                });
+
+                const total = cart.reduce((sum, item) => sum + item.savings, 0);
+                doc.setFontSize(12);
+                doc.text(`Total Savings: ₹${total.toFixed(2)}`, 20, y);
+                y += 20;
+
+                if (selectedKendra) {
+                    doc.setFontSize(14);
+                    doc.text('Selected Kendra:', 20, y);
+                    y += 10;
+                    doc.setFontSize(10);
+                    doc.text(`Name: ${selectedKendra.name}`, 20, y);
+                    doc.text(`Contact: ${selectedKendra.contact}`, 20, y + 5);
+                    doc.text(`Address: ${selectedKendra.address}`, 20, y + 10);
+                }
+
+                doc.save('MediLens_Cart.pdf');
+                status.textContent = 'Cart PDF downloaded successfully';
+            } catch (error) {
+                console.error('Error generating cart PDF:', error);
+                status.textContent = 'Error generating cart PDF';
+            }
+        }
+
+        function generateKendraPDF() {
+            try {
+                const displayedRows = kendraTable.querySelectorAll('tr');
+                if (displayedRows.length === 0) {
+                    status.textContent = 'No Kendras to download';
+                    return;
+                }
+                const doc = new jsPDF();
+                doc.setFontSize(20);
+                doc.text('MediLens - Nearby Jan Aushadhi Kendras', 20, 20);
+                doc.setFontSize(12);
+                doc.text('Date: ' + new Date().toLocaleDateString(), 20, 30);
+
+                let y = 50;
+                doc.setFontSize(14);
+                doc.text('Kendra Details:', 20, y);
+                y += 10;
+
+                doc.setFontSize(10);
+                Array.from(displayedRows).forEach((row, index) => {
+                    const cells = row.querySelectorAll('td');
+                    const kendra = {
+                        name: cells[0].textContent,
+                        contact: cells[1].textContent,
+                        pinCode: cells[2].textContent,
+                        address: cells[3].textContent,
+                        kendraCode: cells[4].textContent
+                    };
+                    doc.text(`${index + 1}. ${kendra.name}`, 20, y);
+                    doc.text(`Contact: ${kendra.contact}`, 20, y + 5);
+                    doc.text(`Pin Code: ${kendra.pinCode}`, 20, y + 10);
+                    doc.text(`Address: ${kendra.address}`, 20, y + 15);
+                    doc.text(`Kendra Code: ${kendra.kendraCode}`, 20, y + 20);
+                    y += 30;
+                });
+
+                doc.save('MediLens_Kendras.pdf');
+                status.textContent = 'Kendra PDF downloaded successfully';
+            } catch (error) {
+                console.error('Error generating Kendra PDF:', error);
+                status.textContent = 'Error generating Kendra PDF';
+            }
+        }
+    </script>
+</body>
+</html>
